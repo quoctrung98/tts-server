@@ -9,8 +9,8 @@
     "web": "expo start --web",
     "server": "python tts-server.py",
     "dev": "concurrently \"npm run server\" \"npm start\"",
-    "build": "expo export:web",
-    "build:prod": "EXPO_PUBLIC_TTS_URL=$BACKEND_URL expo export:web",
+    "build": "expo export --platform web",
+    "build:prod": "EXPO_PUBLIC_TTS_URL=$BACKEND_URL expo export --platform web",
     "deploy": "npm run build && vercel --prod",
     "preview": "npx serve dist"
   },
