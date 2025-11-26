@@ -13,7 +13,7 @@
  */
 export const TTS_SERVER_URL = 
   (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_TTS_URL) || 
-  'http://localhost:5000';
+  'https://appreader-tts-server-production.up.railway.app';
 
 /**
  * Default TTS Settings
