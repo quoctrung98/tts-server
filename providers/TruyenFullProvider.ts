@@ -1,4 +1,5 @@
 import { IChapterProvider, ChapterContent } from './IChapterProvider';
+import { restoreCensoredWords } from '../utils/textUtils';
 
 export class TruyenFullProvider implements IChapterProvider {
   private readonly baseUrlPattern = /truyenfull\.(vn|vision)/i;
@@ -123,6 +124,9 @@ export class TruyenFullProvider implements IChapterProvider {
       content = content.replace(/\n\s+/g, '\n'); // Remove spaces after newlines
       content = content.replace(/\n{3,}/g, '\n\n'); // Max 2 consecutive newlines
       content = content.trim();
+      
+      // Restore censored words
+      content = restoreCensoredWords(content);
       
       if (!content || content.length < 50) {
         throw new Error('Nội dung chương truyện quá ngắn hoặc không hợp lệ');

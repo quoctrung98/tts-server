@@ -62,3 +62,37 @@ export function calculateProgress(current: number, total: number): number {
   return Math.round((current / total) * 100);
 }
 
+/**
+ * Restore censored words that were masked with asterisks
+ * This function replaces censored words back to their original form
+ */
+export function restoreCensoredWords(text: string): string {
+  // Dictionary mapping censored patterns to original words
+  const censoredWordMap: { [key: string]: string } = {
+    'k*ch th*ch': 'kích thích',
+    'b*n r*': 'bắn ra',
+    'l*n đ*nh': 'lên đỉnh',
+    'g**t': 'giết',
+    'ch*t': 'chết',
+    'kh*ng b*': 'khủng bố',
+    't** ch**n': 'tinh chiến',
+    's* s**ng': 'sờ soạng',
+  };
+  
+  let restoredText = text;
+  
+  // Replace each censored pattern with its original form
+  // Use word boundaries to avoid partial matches
+  for (const [censored, original] of Object.entries(censoredWordMap)) {
+    // Escape special regex characters and replace * with \S (any non-whitespace character)
+    const regexPattern = censored
+      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // Escape special chars except *
+      .replace(/\\\*/g, '\\S*?'); // Replace escaped * with non-greedy wildcard
+    
+    const regex = new RegExp(regexPattern, 'gi');
+    restoredText = restoredText.replace(regex, original);
+  }
+  
+  return restoredText;
+}
+

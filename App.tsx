@@ -22,7 +22,7 @@ import { ChapterContent } from './providers/IChapterProvider';
 
 export default function App() {
   // URL and Chapter State
-  const [chapterUrl, setChapterUrl] = useState('https://truyenfull.vision/chung-cuc-dau-la-dau-la-dai-luc-4/chuong-80/');
+  const [chapterUrl, setChapterUrl] = useState('');
   const [chapterContent, setChapterContent] = useState<ChapterContent | null>(null);
   const [isLoadingChapter, setIsLoadingChapter] = useState(false);
 
@@ -697,7 +697,7 @@ export default function App() {
         )}
 
         {/* TTS Controls Section */}
-        {chapterContent && (
+        {(
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>🎧 Điều khiển phát âm</Text>
             
@@ -805,13 +805,13 @@ export default function App() {
             )}
 
             {/* Download Button */}
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={[styles.button, styles.downloadButton, textChunks.length === 0 && styles.buttonDisabled]}
               onPress={downloadAudio}
               disabled={textChunks.length === 0}
             >
               <Text style={styles.buttonText}>💾 Tải xuống MP3 (Coming soon)</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         )}
 
