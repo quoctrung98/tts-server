@@ -51,8 +51,8 @@ export const NETWORK_CONFIG = {
  */
 export const SUPPORTED_PROVIDERS = [
   { name: 'Truyện Full', domains: ['truyenfull.vn', 'truyenfull.vision'], status: 'active' },
+  { name: 'Tàng Thư Viện', domains: ['tangthuvien.vn', 'tangthuvien.com.vn'], status: 'active' },
   { name: 'Docln', domains: ['docln.net'], status: 'coming_soon' },
-  { name: 'Tàng Thư Viện', domains: ['tangthuvien.vn', 'tangthuvien.com.vn'], status: 'coming_soon' },
   { name: 'Truyện Dịch Miễn Phí', domains: ['truyendichmienphi.vn'], status: 'coming_soon' },
 ];
 

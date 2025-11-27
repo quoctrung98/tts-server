@@ -1,15 +1,15 @@
 import { IChapterProvider } from './IChapterProvider';
 import { TruyenFullProvider } from './TruyenFullProvider';
 // import { DoclnProvider } from './DoclnProvider';
-// import { TangThuVienProvider } from './TangThuVienProvider';
+import { TangThuVienProvider } from './TangThuVienProvider';
 // import { TruyenDichMienPhiProvider } from './TruyenDichMienPhiProvider';
 
 export class ProviderFactory {
   private static providers: IChapterProvider[] = [
     new TruyenFullProvider(),
+    new TangThuVienProvider(),
     // Uncomment khi đã implement:
     // new DoclnProvider(),
-    // new TangThuVienProvider(),
     // new TruyenDichMienPhiProvider(),
   ];
   
