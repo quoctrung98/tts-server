@@ -54,10 +54,14 @@ export default function App() {
   const [seekValue, setSeekValue] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
 
+  // Dark mode
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
   useEffect(() => {
     const initApp = async () => {
       loadVoices();
       await loadSettings();
+      await loadDarkMode();
       
       // Try to load chapter from URL query first, then localStorage
       const urlChapter = parseUrlQuery();
@@ -172,6 +176,17 @@ export default function App() {
   const saveSettings = async (newSettings: TTSSettings) => {
     setTTSSettings(newSettings);
     await storage.save(storage.keys.TTS_SETTINGS, newSettings);
+  };
+
+  const loadDarkMode = async () => {
+    const saved = await storage.load<boolean>(storage.keys.DARK_MODE, false);
+    setIsDarkMode(saved);
+  };
+
+  const toggleDarkMode = async () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    await storage.save(storage.keys.DARK_MODE, newMode);
   };
 
   // Save reading progress to localStorage and URL
@@ -588,20 +603,45 @@ export default function App() {
     }
   };
 
+  // Color palette based on dark mode
+  const colors = {
+    background: isDarkMode ? '#1a1a1a' : '#f5f7fa',
+    cardBackground: isDarkMode ? '#2d2d2d' : 'white',
+    text: isDarkMode ? '#e0e0e0' : '#2c3e50',
+    textSecondary: isDarkMode ? '#b0b0b0' : '#7f8c8d',
+    inputBackground: isDarkMode ? '#3d3d3d' : '#f8f9fa',
+    inputBorder: isDarkMode ? '#4d4d4d' : '#dee2e6',
+    sectionTitle: isDarkMode ? '#ffffff' : '#34495e',
+    contentBackground: isDarkMode ? '#2d2d2d' : '#f8f9fa',
+    highlightBackground: isDarkMode ? '#4a4a00' : '#fff3cd',
+    highlightBorder: isDarkMode ? '#9a9a00' : '#ffc107',
+    shadowColor: isDarkMode ? '#000' : '#000',
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         {/* Header */}
-        <Text style={styles.title}>📚 Ứng Dụng Đọc Truyện</Text>
-        <Text style={styles.subtitle}>
-          TTS Tiếng Việt • {availableVoices.length} giọng đọc
-        </Text>
+        <View style={styles.headerContainer}>
+          <View style={styles.headerTextContainer}>
+            <Text style={[styles.title, { color: colors.text }]}>📚 Ứng Dụng Đọc Truyện</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+              TTS Tiếng Việt • {availableVoices.length} giọng đọc
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.darkModeButton, { backgroundColor: colors.cardBackground }]}
+            onPress={toggleDarkMode}
+          >
+            <Text style={styles.darkModeIcon}>{isDarkMode ? '☀️' : '🌙'}</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* URL Input Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔗 Nhập URL Chương Truyện</Text>
+        <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
+          <Text style={[styles.sectionTitle, { color: colors.sectionTitle }]}>🔗 Nhập URL Chương Truyện</Text>
           <TextInput
-            style={styles.urlInput}
+            style={[styles.urlInput, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder, color: colors.text }]}
             placeholder="https://truyenfull.vision/..."
             value={chapterUrl}
             onChangeText={setChapterUrl}
@@ -611,7 +651,7 @@ export default function App() {
           />
           
           <View style={styles.supportedSites}>
-            <Text style={styles.supportedSitesText}>
+            <Text style={[styles.supportedSitesText, { color: colors.textSecondary }]}>
               Trang hỗ trợ: {getActiveProviders().map((p, i) => (
                 <Text key={i} style={styles.badge}>{p.name}{i < getActiveProviders().length - 1 ? ', ' : ''}</Text>
               ))}
@@ -633,19 +673,19 @@ export default function App() {
 
         {/* Chapter Content Display with Highlighting */}
         {chapterContent && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📖 Nội dung chương</Text>
+          <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
+            <Text style={[styles.sectionTitle, { color: colors.sectionTitle }]}>📖 Nội dung chương</Text>
             <View style={styles.chapterInfo}>
-              <Text style={styles.chapterTitle}>{chapterContent.title}</Text>
+              <Text style={[styles.chapterTitle, { color: colors.text }]}>{chapterContent.title}</Text>
               {chapterContent.novelTitle && (
-                <Text style={styles.chapterMeta}>Truyện: {chapterContent.novelTitle}</Text>
+                <Text style={[styles.chapterMeta, { color: colors.textSecondary }]}>Truyện: {chapterContent.novelTitle}</Text>
               )}
-              <Text style={styles.chapterMeta}>
+              <Text style={[styles.chapterMeta, { color: colors.textSecondary }]}>
                 Độ dài: {chapterContent.content.length.toLocaleString()} ký tự
                 {textChunks.length > 0 && ` • ${textChunks.length} đoạn`}
               </Text>
               {chapterContent.nextChapterUrl && (
-                <Text style={styles.chapterMeta}>
+                <Text style={[styles.chapterMeta, { color: colors.textSecondary }]}>
                   ▶️ Có chương tiếp theo
                   {ttsSettings.autoNextChapter && (
                     <Text style={styles.autoNextBadge}> • Tự động phát</Text>
@@ -656,7 +696,7 @@ export default function App() {
             
             <ScrollView 
               ref={contentScrollRef}
-              style={styles.contentScroll} 
+              style={[styles.contentScroll, { backgroundColor: colors.contentBackground }]} 
               nestedScrollEnabled
             >
               {textChunks.length > 0 ? (
@@ -670,12 +710,16 @@ export default function App() {
                     }}
                     style={[
                       styles.contentChunkContainer,
-                      index === currentChunkIndex && styles.contentChunkContainerHighlighted,
+                      index === currentChunkIndex && [
+                        styles.contentChunkContainerHighlighted,
+                        { backgroundColor: colors.highlightBackground, borderLeftColor: colors.highlightBorder }
+                      ],
                     ]}
                   >
                     <Text
                       style={[
                         styles.contentChunk,
+                        { color: colors.text },
                         index === currentChunkIndex && styles.contentChunkHighlighted,
                       ]}
                     >
@@ -687,7 +731,7 @@ export default function App() {
                 <Text style={styles.contentText}>
                   {chapterContent.content.substring(0, 500)}...
                   {'\n\n'}
-                  <Text style={styles.contentHint}>
+                  <Text style={[styles.contentHint, { color: colors.textSecondary }]}>
                     💡 Nhấn "▶️ Đọc" để xem toàn bộ nội dung với highlight theo thời gian thực
                   </Text>
                 </Text>
@@ -698,15 +742,15 @@ export default function App() {
 
         {/* TTS Controls Section */}
         {(
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🎧 Điều khiển phát âm</Text>
+          <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
+            <Text style={[styles.sectionTitle, { color: colors.sectionTitle }]}>🎧 Điều khiển phát âm</Text>
             
             {/* Settings Button */}
             <TouchableOpacity
-              style={styles.settingsButton}
+              style={[styles.settingsButton, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}
               onPress={() => setShowSettings(true)}
             >
-              <Text style={styles.settingsButtonText}>
+              <Text style={[styles.settingsButtonText, { color: colors.text }]}>
                 ⚙️ Cài đặt giọng nói & tốc độ
               </Text>
               <View style={styles.settingsPreview}>
@@ -754,13 +798,13 @@ export default function App() {
             {textChunks.length > 0 && (
               <View style={styles.progressSection}>
                 {/* Visual Progress Bar (Read-only) */}
-                <View style={styles.progressBar}>
+                <View style={[styles.progressBar, { backgroundColor: colors.inputBackground }]}>
                   <View style={[styles.progressFill, { width: `${readingProgress}%` }]} />
                 </View>
                 
                 {/* Seek Slider (Interactive) */}
-                <View style={styles.seekSliderContainer}>
-                  <Text style={styles.seekLabel}>⏩ Tua nhanh đến đoạn:</Text>
+                <View style={[styles.seekSliderContainer, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+                  <Text style={[styles.seekLabel, { color: colors.text }]}>⏩ Tua nhanh đến đoạn:</Text>
                   <input
                     type="range"
                     min="0"
@@ -794,7 +838,7 @@ export default function App() {
                 
                 {/* Progress Info */}
                 <View style={styles.progressInfo}>
-                  <Text style={styles.progressText}>
+                  <Text style={[styles.progressText, { color: colors.textSecondary }]}>
                     Đang phát: Đoạn {currentChunkIndex + 1} / {textChunks.length}
                   </Text>
                   <Text style={styles.progressPercent}>
@@ -816,7 +860,7 @@ export default function App() {
         )}
 
         {/* Voice Info */}
-        <Text style={styles.footer}>
+        <Text style={[styles.footer, { color: colors.textSecondary }]}>
           Giọng đọc: {ttsSettings.voiceName} • Server: {TTS_SERVER_URL}
         </Text>
       </ScrollView>
@@ -844,6 +888,30 @@ const styles = StyleSheet.create({
     marginHorizontal: Platform.OS === 'web' ? 'auto' : 0,
     width: '100%',
   },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  headerTextContainer: {
+    flex: 1,
+  },
+  darkModeButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  darkModeIcon: {
+    fontSize: 24,
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -855,7 +923,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     color: '#7f8c8d',
-    marginBottom: 24,
+    marginBottom: 0,
   },
   section: {
     backgroundColor: 'white',

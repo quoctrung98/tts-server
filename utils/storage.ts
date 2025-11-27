@@ -6,6 +6,7 @@ const STORAGE_KEYS = {
   LAST_CHAPTER_URL: 'last_chapter_url',
   READING_HISTORY: 'reading_history',
   READING_PROGRESS: 'reading_progress',
+  DARK_MODE: 'dark_mode',
 };
 
 export interface ReadingProgress {
