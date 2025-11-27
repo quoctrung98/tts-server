@@ -613,7 +613,7 @@ export default function App() {
     inputBorder: isDarkMode ? '#4d4d4d' : '#dee2e6',
     sectionTitle: isDarkMode ? '#ffffff' : '#34495e',
     contentBackground: isDarkMode ? '#2d2d2d' : '#f8f9fa',
-    highlightBackground: isDarkMode ? '#4a4a00' : '#fff3cd',
+    highlightBackground: isDarkMode ? '#fff3cd' : '#fff3cd',
     highlightBorder: isDarkMode ? '#9a9a00' : '#ffc107',
     shadowColor: isDarkMode ? '#000' : '#000',
   };
