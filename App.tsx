@@ -840,6 +840,9 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
     paddingBottom: 40,
+    maxWidth: Platform.OS === 'web' ? 900 : undefined,
+    marginHorizontal: Platform.OS === 'web' ? 'auto' : 0,
+    width: '100%',
   },
   title: {
     fontSize: 28,

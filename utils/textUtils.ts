@@ -77,6 +77,7 @@ export function restoreCensoredWords(text: string): string {
     'kh*ng b*': 'khủng bố',
     't** ch**n': 'tinh chiến',
     's* s**ng': 'sờ soạng',
+    'l* m*ng': 'lỗ mãng'
   };
   
   let restoredText = text;
