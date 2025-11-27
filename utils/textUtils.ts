@@ -82,15 +82,8 @@ export function restoreCensoredWords(text: string): string {
   let restoredText = text;
   
   // Replace each censored pattern with its original form
-  // Use word boundaries to avoid partial matches
   for (const [censored, original] of Object.entries(censoredWordMap)) {
-    // Escape special regex characters and replace * with \S (any non-whitespace character)
-    const regexPattern = censored
-      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // Escape special chars except *
-      .replace(/\\\*/g, '\\S*?'); // Replace escaped * with non-greedy wildcard
-    
-    const regex = new RegExp(regexPattern, 'gi');
-    restoredText = restoredText.replace(regex, original);
+    restoredText = restoredText.replaceAll(censored, original);
   }
   
   return restoredText;
