@@ -35,8 +35,6 @@ export class TangThuVienProvider implements IChapterProvider {
         html = await response.text();
       } catch (directFetchError: any) {
         // If direct fetch fails (likely CORS on web), use proxy
-        console.log('Direct fetch failed, using proxy:', directFetchError.message);
-        
         // Import TTS_SERVER_URL from config
         const { TTS_SERVER_URL } = await import('../config');
         
@@ -183,10 +181,8 @@ export class TangThuVienProvider implements IChapterProvider {
       const baseUrl = match[1];
       const currentChapter = parseInt(match[2], 10);
       const nextChapter = currentChapter + 1;
-      console.log('📍 Generated next chapter URL:', `${baseUrl}${nextChapter}`);
       return `${baseUrl}${nextChapter}`;
     }
-    console.log('⚠️ Next chapter URL not found');
     return undefined;
   }
   
@@ -198,7 +194,6 @@ export class TangThuVienProvider implements IChapterProvider {
       const currentChapter = parseInt(match[2], 10);
       if (currentChapter > 1) {
         const prevChapter = currentChapter - 1;
-        console.log('📍 Generated prev chapter URL:', `${baseUrl}${prevChapter}`);
         return `${baseUrl}${prevChapter}`;
       }
     }

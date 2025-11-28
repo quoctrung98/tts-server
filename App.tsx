@@ -66,7 +66,6 @@ export default function App() {
       // Try to load chapter from URL query first, then localStorage
       const urlChapter = parseUrlQuery();
       if (urlChapter) {
-        console.log('🔗 Loading chapter from URL');
         setChapterUrl(urlChapter);
         // Auto-fetch the chapter
         setTimeout(() => fetchChapter(), 500);
@@ -74,7 +73,6 @@ export default function App() {
         // Load from localStorage
         const progress = await loadReadingProgress();
         if (progress) {
-          console.log('📖 Restoring from saved progress');
           setChapterUrl(progress.chapterUrl);
           
           // Ask user if they want to continue
@@ -114,8 +112,6 @@ export default function App() {
     if (currentChunkIndex >= 0 && currentChunkIndex < textChunks.length) {
       const chunkRef = chunkRefsMap.current.get(currentChunkIndex);
       if (chunkRef && contentScrollRef.current) {
-        console.log(`📜 Auto-scrolling to chunk ${currentChunkIndex}`);
-        
         // Small delay to ensure layout is complete
         setTimeout(() => {
           if (Platform.OS === 'web') {
@@ -125,7 +121,6 @@ export default function App() {
                 behavior: 'smooth', 
                 block: 'center',
               });
-              console.log('✅ Scrolled (web)');
             }
           } else {
             // For native, use measureLayout
@@ -136,10 +131,8 @@ export default function App() {
                   y: Math.max(0, y - 100), 
                   animated: true 
                 });
-                console.log('✅ Scrolled (native)');
               },
               () => {
-                console.log('❌ Failed to measure chunk layout');
               }
             );
           }
@@ -169,7 +162,6 @@ export default function App() {
       ...saved,
     };
     
-    console.log('Loaded settings:', merged);
     setTTSSettings(merged);
   };
 
@@ -199,7 +191,6 @@ export default function App() {
     };
     
     await storage.save(storage.keys.READING_PROGRESS, progress);
-    console.log('💾 Saved reading progress:', progress);
     
     // Update URL query
     updateUrlQuery(url);
@@ -213,7 +204,6 @@ export default function App() {
     );
     
     if (progress) {
-      console.log('📖 Found saved progress:', progress);
     }
     
     return progress;
@@ -225,7 +215,6 @@ export default function App() {
       const url = new URL(window.location.href);
       url.searchParams.set('chapter', chapterUrl);
       window.history.pushState({}, '', url.toString());
-      console.log('🔗 Updated URL:', url.toString());
     }
   };
 
@@ -235,7 +224,6 @@ export default function App() {
       const urlParams = new URLSearchParams(window.location.search);
       const chapterUrl = urlParams.get('chapter');
       if (chapterUrl) {
-        console.log('🔗 Found chapter in URL:', chapterUrl);
         return chapterUrl;
       }
     }
@@ -249,7 +237,6 @@ export default function App() {
       const voices = await response.json();
       setAvailableVoices(voices);
     } catch (error) {
-      console.log('Could not load voices:', error);
     }
   };
 
@@ -277,18 +264,8 @@ export default function App() {
         );
       }
 
-      console.log(`Using provider: ${provider.getName()}`);
-      
       // Fetch chapter content using the provider
       const chapter = await provider.fetchChapter(chapterUrl);
-      
-      console.log('📖 Chapter fetched:', {
-        title: chapter.title,
-        contentLength: chapter.content.length,
-        nextChapterUrl: chapter.nextChapterUrl,
-        prevChapterUrl: chapter.prevChapterUrl,
-      });
-      
       setChapterContent(chapter);
       
       // Save to localStorage and update URL
@@ -352,48 +329,32 @@ export default function App() {
           saveReadingProgress(chapterUrl, index, chapterContent?.title);
         },
         onChunkEnd: (index) => {
-          console.log(`✅ Chunk ${index} completed`);
         },
         onAllComplete: async () => {
-          console.log('🎉 All chunks completed');
-          console.log('Auto next enabled?', ttsSettings.autoNextChapter);
-          console.log('Next chapter URL?', chapterContent?.nextChapterUrl);
-          
           setIsPlaying(false);
           setCurrentChunkIndex(-1);
           
           // Auto play next chapter if enabled
           if (ttsSettings.autoNextChapter && chapterContent?.nextChapterUrl) {
-            console.log('✅ Conditions met, auto-loading next chapter');
-            console.log('🔄 Auto playing next chapter:', chapterContent.nextChapterUrl);
-            
             // Stop current TTS manager first
             if (ttsManagerRef.current) {
-              console.log('🛑 Stopping current TTS manager');
               await ttsManagerRef.current.stop();
               ttsManagerRef.current = null;
             }
             
             // Wait a bit then load next chapter
-            console.log('⏳ Waiting 1.5s before loading next...');
             setTimeout(async () => {
               try {
-                console.log('🚀 Starting next chapter fetch...');
                 setChapterUrl(chapterContent.nextChapterUrl!);
                 await fetchAndPlayNextChapter(chapterContent.nextChapterUrl!);
               } catch (error: any) {
-                console.error('❌ Error auto-loading next chapter:', error);
-                console.error('Error stack:', error.stack);
                 Alert.alert('Lỗi', 'Không thể tự động chuyển chương. Vui lòng thử lại thủ công.');
               }
             }, 1500);
           } else {
-            console.log('⏹️ Not auto-loading next chapter');
             if (!ttsSettings.autoNextChapter) {
-              console.log('Reason: Auto-next disabled');
             }
             if (!chapterContent?.nextChapterUrl) {
-              console.log('Reason: No next chapter URL');
             }
             Alert.alert('Hoàn thành', 'Đã đọc xong chương!');
           }
@@ -408,8 +369,6 @@ export default function App() {
       // Start playing
       await manager.start();
       setIsPlaying(true);
-
-      console.log('Playing chapter with settings:', ttsSettings);
     } catch (error: any) {
       console.error('Speech error:', error);
       Alert.alert('Lỗi', 'Không thể tạo giọng đọc: ' + error.message);
@@ -454,8 +413,6 @@ export default function App() {
     
     if (ttsManagerRef.current && textChunks.length > 0) {
       const targetIndex = Math.floor(value);
-      console.log(`🎯 Seeking to chunk ${targetIndex}`);
-      
       await ttsManagerRef.current.jumpToChunk(targetIndex);
       setCurrentChunkIndex(targetIndex);
       setReadingProgress(Math.round(((targetIndex + 1) / textChunks.length) * 100));
@@ -471,15 +428,7 @@ export default function App() {
 
   // Auto fetch and play next chapter
   const fetchAndPlayNextChapter = async (url: string) => {
-    console.log('');
-    console.log('==========================================');
-    console.log('🔄 fetchAndPlayNextChapter CALLED');
-    console.log('URL:', url);
-    console.log('==========================================');
-    
     try {
-      console.log('📖 Step 1: Fetching next chapter...');
-      
       // Import ProviderFactory dynamically
       const { ProviderFactory } = await import('./providers/ProviderFactory');
       
@@ -489,37 +438,24 @@ export default function App() {
       if (!provider) {
         throw new Error('Provider not found for next chapter');
       }
-
-      // Fetch chapter content
-      console.log('📡 Step 2: Calling provider.fetchChapter...');
       const chapter = await provider.fetchChapter(url);
-      console.log('✅ Step 3: Chapter fetched successfully');
-      console.log('   Title:', chapter.title);
-      console.log('   Content length:', chapter.content.length);
-      console.log('   Next URL:', chapter.nextChapterUrl);
-      
       setChapterContent(chapter);
       
       // Update URL and save progress
       updateUrlQuery(url);
       
       // Split into chunks
-      console.log('✂️ Step 4: Splitting into chunks...');
       const sentences = splitIntoSentences(chapter.content);
       const chunks = groupSentencesIntoChunks(sentences, 50, 300);
-      console.log(`📚 Step 5: Split into ${chunks.length} chunks`);
-      
       setTextChunks(chunks);
       setCurrentChunkIndex(0);
       setReadingProgress(0);
       setSeekValue(0);
 
       // Small delay to ensure state is updated
-      console.log('⏳ Step 6: Waiting 500ms for state sync...');
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Create TTS manager
-      console.log('🎬 Step 7: Creating TTS manager...');
       const manager = new TTSQueueManager(
         chunks,
         TTS_SERVER_URL,
@@ -528,11 +464,9 @@ export default function App() {
         ttsSettings.pitch,
         ttsSettings.volume
       );
-      console.log('✅ TTS manager created');
 
       manager.setCallbacks({
         onChunkStart: (index, text) => {
-          console.log(`▶️ Playing chunk ${index + 1}/${chunks.length}`);
           setCurrentChunkIndex(index);
           setReadingProgress(Math.round(((index + 1) / chunks.length) * 100));
           if (!isSeeking) {
@@ -542,17 +476,13 @@ export default function App() {
           saveReadingProgress(url, index, chapter.title);
         },
         onChunkEnd: (index) => {
-          console.log(`✅ Chunk ${index} completed`);
         },
         onAllComplete: async () => {
-          console.log('🎉 Next chapter completed');
           setIsPlaying(false);
           setCurrentChunkIndex(-1);
           
           // Continue to next chapter if enabled
           if (ttsSettings.autoNextChapter && chapter.nextChapterUrl) {
-            console.log('🔄 Continuing to next chapter...');
-            
             // Stop current manager
             if (ttsManagerRef.current) {
               await ttsManagerRef.current.stop();
@@ -579,25 +509,11 @@ export default function App() {
         },
       });
 
-      console.log('📝 Step 8: Setting callbacks...');
       ttsManagerRef.current = manager;
       
-      console.log('▶️ Step 9: Starting TTS manager...');
       await manager.start();
       setIsPlaying(true);
-
-      console.log('');
-      console.log('✅✅✅ Auto-playing next chapter SUCCESS! ✅✅✅');
-      console.log('==========================================');
-      console.log('');
     } catch (error: any) {
-      console.log('');
-      console.error('❌❌❌ Error auto-playing next chapter ❌❌❌');
-      console.error('Error:', error);
-      console.error('Message:', error.message);
-      console.error('Stack:', error.stack);
-      console.log('==========================================');
-      console.log('');
       Alert.alert('Lỗi', `Không thể tự động phát chương tiếp theo: ${error.message}`);
       setIsPlaying(false);
     }

@@ -134,8 +134,6 @@ export class TTSQueueManager {
       return;
     }
     
-    console.log(`⏭️ Jumping from chunk ${this.currentIndex} to ${index}`);
-    
     // Store playing state
     const wasPlaying = this.isPlaying;
     
@@ -144,7 +142,6 @@ export class TTSQueueManager {
     if (this.currentIndex >= 0 && this.currentIndex < this.chunks.length) {
       const currentChunk = this.chunks[this.currentIndex];
       if (currentChunk?.player) {
-        console.log(`🛑 Stopping current chunk ${this.currentIndex}`);
         try {
           await currentChunk.player.stop();
           await currentChunk.player.unload();
@@ -170,18 +167,14 @@ export class TTSQueueManager {
     
     // Update index
     this.currentIndex = index;
-    console.log(`✅ Index updated to ${index}`);
-    
     // Pre-fetch chunks around the target index
     await this.prefetchChunks();
     
     // Resume playing if was playing before
     if (wasPlaying) {
       this.isPlaying = true;
-      console.log(`▶️ Resuming playback from chunk ${index}`);
       await this.playNext();
     } else {
-      console.log(`⏸️ Not auto-playing (was paused)`);
     }
   }
   
@@ -243,32 +236,22 @@ export class TTSQueueManager {
   }
   
   private async playNext() {
-    console.log(`[TTSQueueManager] playNext: index=${this.currentIndex}, total=${this.chunks.length}, isPlaying=${this.isPlaying}`);
     
     if (!this.isPlaying) {
-      console.log('[TTSQueueManager] Not playing, exiting playNext');
       return;
     }
     
     if (this.currentIndex >= this.chunks.length) {
-      // All done
-      console.log('');
-      console.log('🎊🎊🎊 [TTSQueueManager] ALL CHUNKS COMPLETED! 🎊🎊🎊');
-      console.log(`   Total chunks: ${this.chunks.length}`);
-      console.log(`   Final index: ${this.currentIndex}`);
-      console.log('   Calling onAllComplete callback...');
       
       try {
         if (this.onAllComplete) {
           this.onAllComplete();
-          console.log('✅ [TTSQueueManager] onAllComplete callback executed');
         } else {
           console.warn('⚠️ [TTSQueueManager] onAllComplete callback is undefined!');
         }
       } catch (error) {
         console.error('❌ [TTSQueueManager] Error in onAllComplete:', error);
       }
-      console.log('');
       return;
     }
     
@@ -304,12 +287,9 @@ export class TTSQueueManager {
         chunk.audioUri,
         {
           onFinish: () => {
-            console.log(`✅ Chunk ${currentIdx} finished`);
-            
             // IMPORTANT: Only proceed if this is still the current chunk
             // (prevents old callbacks from triggering after seek)
             if (this.currentIndex !== currentIdx) {
-              console.log(`⚠️ Chunk ${currentIdx} finished but we're now at ${this.currentIndex}, ignoring`);
               return;
             }
             
@@ -331,7 +311,6 @@ export class TTSQueueManager {
             
             // Only proceed if this is still the current chunk
             if (this.currentIndex !== currentIdx) {
-              console.log(`⚠️ Error in chunk ${currentIdx} but we're now at ${this.currentIndex}, ignoring`);
               return;
             }
             

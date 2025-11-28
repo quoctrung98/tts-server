@@ -46,7 +46,6 @@ export class AudioPlayer {
       const audio = new window.Audio(uri);
       
       audio.onloadeddata = () => {
-        console.log('Web audio loaded');
         resolve();
       };
       
@@ -58,7 +57,6 @@ export class AudioPlayer {
       };
       
       audio.onended = () => {
-        console.log('Web audio ended');
         this.callbacks.onFinish?.();
       };
       
@@ -88,7 +86,6 @@ export class AudioPlayer {
       { shouldPlay: false, volume: this.volume },
       (status) => {
         if (status.isLoaded && status.didJustFinish) {
-          console.log('Native audio ended');
           this.callbacks.onFinish?.();
         }
       }

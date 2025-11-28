@@ -35,8 +35,6 @@ export class TruyenFullProvider implements IChapterProvider {
         html = await response.text();
       } catch (directFetchError: any) {
         // If direct fetch fails (likely CORS on web), use proxy
-        console.log('Direct fetch failed, using proxy:', directFetchError.message);
-        
         // Import TTS_SERVER_URL from config
         const { TTS_SERVER_URL } = await import('../config');
         
@@ -217,7 +215,6 @@ export class TruyenFullProvider implements IChapterProvider {
       const hrefMatch = aTag.match(/href="([^"]*)"/i);
       if (hrefMatch && hrefMatch[1]) {
         let url = hrefMatch[1];
-        console.log('📍 Found next chapter URL:', url);
         // If relative URL, convert to absolute
         if (url.startsWith('/')) {
           url = 'https://truyenfull.vision' + url;
@@ -225,7 +222,6 @@ export class TruyenFullProvider implements IChapterProvider {
         return url;
       }
     }
-    console.log('⚠️ Next chapter URL not found');
     return undefined;
   }
   
@@ -238,7 +234,6 @@ export class TruyenFullProvider implements IChapterProvider {
       const hrefMatch = aTag.match(/href="([^"]*)"/i);
       if (hrefMatch && hrefMatch[1]) {
         let url = hrefMatch[1];
-        console.log('📍 Found prev chapter URL:', url);
         // If relative URL, convert to absolute
         if (url.startsWith('/')) {
           url = 'https://truyenfull.vision' + url;
