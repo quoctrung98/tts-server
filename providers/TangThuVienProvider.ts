@@ -116,11 +116,9 @@ export class TangThuVienProvider implements IChapterProvider {
   }
   
   private cleanHtml(text: string): string {
-    return text
-      .replace(/<[^>]+>/g, '')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+    const div = document.createElement('div');
+       div.innerHTML = text;
+    return div.textContent.normalize('NFC').replace(/\s+/g,' ').trim();
   }
   
   private decodeHtmlEntities(text: string): string {
