@@ -14,6 +14,7 @@ import {
   Platform,
   Image
 } from 'react-native';
+import VideoBackground from './components/VideoBackground';
 import { Audio } from 'expo-av';
 import { TTS_SERVER_URL, DEFAULT_TTS_SETTINGS, UI_CONFIG, getActiveProviders } from './config';
 import { splitIntoSentences, groupSentencesIntoChunks } from './utils/textUtils';
@@ -537,14 +538,10 @@ export default function App() {
   };
 
   const image = { uri: 'https://spcdn.shortpixel.ai/spio/ret_img,q_orig,to_auto,s_webp:avif/https://goldpenguin.org/wp-content/uploads/2024/02/Midjourney-Image-29.png' };
-
+  const localVideo = require('./assets/motion.mp4');
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <Image
-        source={image}
-        style={StyleSheet.absoluteFillObject}
-        resizeMode="cover"
-      />
+      <VideoBackground videoSource={localVideo} />
       <ScrollView contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.headerContainer}>
