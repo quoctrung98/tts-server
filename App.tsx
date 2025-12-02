@@ -9,8 +9,10 @@ import {
   ScrollView,
   Alert,
   SafeAreaView,
+  ImageBackground,
   ActivityIndicator,
   Platform,
+  Image
 } from 'react-native';
 import { Audio } from 'expo-av';
 import { TTS_SERVER_URL, DEFAULT_TTS_SETTINGS, UI_CONFIG, getActiveProviders } from './config';
@@ -534,8 +536,15 @@ export default function App() {
     shadowColor: isDarkMode ? '#000' : '#000',
   };
 
+  const image = { uri: 'https://spcdn.shortpixel.ai/spio/ret_img,q_orig,to_auto,s_webp:avif/https://goldpenguin.org/wp-content/uploads/2024/02/Midjourney-Image-29.png' };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <Image
+        source={image}
+        style={StyleSheet.absoluteFillObject}
+        resizeMode="cover"
+      />
       <ScrollView contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.headerContainer}>
