@@ -546,10 +546,10 @@ export default function App() {
         {/* Header */}
         <View style={styles.headerContainer}>
           <View style={styles.headerTextContainer}>
-            <Text style={[styles.title, { color: colors.text }]}>📚 Ứng Dụng Đọc Truyện</Text>
+            {/* <Text style={[styles.title, { color: colors.text }]}>📚 Ứng Dụng Đọc Truyện</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
               TTS Tiếng Việt • {availableVoices.length} giọng đọc
-            </Text>
+            </Text> */}
           </View>
           <TouchableOpacity
             style={[styles.darkModeButton, { backgroundColor: colors.cardBackground }]}
@@ -602,11 +602,7 @@ export default function App() {
               {chapterContent.novelTitle && (
                 <Text style={[styles.chapterMeta, { color: colors.textSecondary }]}>Truyện: {chapterContent.novelTitle}</Text>
               )}
-              <Text style={[styles.chapterMeta, { color: colors.textSecondary }]}>
-                Độ dài: {chapterContent.content.length.toLocaleString()} ký tự
-                {textChunks.length > 0 && ` • ${textChunks.length} đoạn`}
-              </Text>
-              {chapterContent.nextChapterUrl && (
+              {chapterContent.nextChapterUrl != undefined && (
                 <Text style={[styles.chapterMeta, { color: colors.textSecondary }]}>
                   ▶️ Có chương tiếp theo
                   {ttsSettings.autoNextChapter && (
@@ -782,9 +778,9 @@ export default function App() {
         )}
 
         {/* Voice Info */}
-        <Text style={[styles.footer, { color: colors.textSecondary }]}>
+        {/* <Text style={[styles.footer, { color: colors.textSecondary }]}>
           Giọng đọc: {ttsSettings.voiceName} • Server: {TTS_SERVER_URL}
-        </Text>
+        </Text> */}
       </ScrollView>
 
       {/* Settings Modal */}
