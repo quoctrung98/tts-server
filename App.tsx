@@ -541,7 +541,11 @@ export default function App() {
   const localVideo = require('./assets/motion.mp4');
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <VideoBackground videoSource={localVideo} />
+      <Image
+        source={image}
+        style={StyleSheet.absoluteFillObject}
+        resizeMode="cover"
+      />
       <ScrollView contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.headerContainer}>
