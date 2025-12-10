@@ -22,6 +22,7 @@ import { TTSQueueManager } from './services/TTSQueueManager';
 import SettingsModal, { TTSSettings } from './components/SettingsModal';
 import { storage, ReadingProgress } from './utils/storage';
 import { ChapterContent } from './providers/IChapterProvider';
+import { useKeepAwake } from 'expo-keep-awake';
 
 export default function App() {
   // URL and Chapter State
@@ -59,6 +60,8 @@ export default function App() {
 
   // Dark mode
   const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useKeepAwake();
 
   useEffect(() => {
     const initApp = async () => {
