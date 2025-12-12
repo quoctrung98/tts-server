@@ -34,7 +34,7 @@ export default function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [availableVoices, setAvailableVoices] = useState<any[]>([]);
-  
+
   // Settings
   const [showSettings, setShowSettings] = useState(false);
   const [ttsSettings, setTTSSettings] = useState<TTSSettings>({
@@ -53,7 +53,7 @@ export default function App() {
   const ttsManagerRef = useRef<TTSQueueManager | null>(null);
   const contentScrollRef = useRef<ScrollView>(null);
   const chunkRefsMap = useRef<Map<number, any>>(new Map());
-  
+
   // Seek slider
   const [seekValue, setSeekValue] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
@@ -63,12 +63,58 @@ export default function App() {
 
   useKeepAwake();
 
+  // Web Wake Lock API - keeps screen awake on web browsers while playing
+  useEffect(() => {
+    let wakeLock: WakeLockSentinel | null = null;
+
+    const requestWakeLock = async () => {
+      if (Platform.OS === 'web' && 'wakeLock' in navigator) {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+          console.log('🔆 Wake Lock acquired - screen will stay on');
+
+          wakeLock.addEventListener('release', () => {
+            console.log('🔅 Wake Lock released');
+          });
+        } catch (err: any) {
+          console.log('Wake Lock error:', err.message);
+        }
+      }
+    };
+
+    // Request wake lock when playing
+    if (isPlaying) {
+      requestWakeLock();
+    }
+
+    // Re-acquire wake lock when page becomes visible again (it gets released when tab is hidden)
+    const handleVisibilityChange = () => {
+      if (Platform.OS === 'web' && document.visibilityState === 'visible' && isPlaying) {
+        requestWakeLock();
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+
+    return () => {
+      if (wakeLock) {
+        wakeLock.release();
+        wakeLock = null;
+      }
+      if (Platform.OS === 'web') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }
+    };
+  }, [isPlaying]);
+
   useEffect(() => {
     const initApp = async () => {
       loadVoices();
       await loadSettings();
       await loadDarkMode();
-      
+
       // Try to load chapter from URL query first, then localStorage
       const urlChapter = parseUrlQuery();
       if (urlChapter) {
@@ -80,7 +126,7 @@ export default function App() {
         const progress = await loadReadingProgress();
         if (progress) {
           setChapterUrl(progress.chapterUrl);
-          
+
           // Ask user if they want to continue
           if (Platform.OS === 'web' && window.confirm) {
             const shouldContinue = window.confirm(
@@ -102,9 +148,9 @@ export default function App() {
         }
       }
     };
-    
+
     initApp();
-    
+
     return () => {
       // Cleanup TTS manager on unmount
       if (ttsManagerRef.current) {
@@ -123,8 +169,8 @@ export default function App() {
           if (Platform.OS === 'web') {
             // For web, use scrollIntoView if available
             if (chunkRef.scrollIntoView) {
-              chunkRef.scrollIntoView({ 
-                behavior: 'smooth', 
+              chunkRef.scrollIntoView({
+                behavior: 'smooth',
                 block: 'center',
               });
             }
@@ -133,9 +179,9 @@ export default function App() {
             chunkRef.measureLayout(
               contentScrollRef.current,
               (x: number, y: number) => {
-                contentScrollRef.current?.scrollTo({ 
-                  y: Math.max(0, y - 100), 
-                  animated: true 
+                contentScrollRef.current?.scrollTo({
+                  y: Math.max(0, y - 100),
+                  animated: true
                 });
               },
               () => {
@@ -156,18 +202,18 @@ export default function App() {
       volume: 0.8,
       autoNextChapter: false,
     };
-    
+
     const saved = await storage.load<TTSSettings>(
       storage.keys.TTS_SETTINGS,
       defaultSettings
     );
-    
+
     // Merge with default to ensure all fields exist (backward compatibility)
     const merged: TTSSettings = {
       ...defaultSettings,
       ...saved,
     };
-    
+
     setTTSSettings(merged);
   };
 
@@ -195,9 +241,9 @@ export default function App() {
       chunkIndex: chunkIndex,
       timestamp: Date.now(),
     };
-    
+
     await storage.save(storage.keys.READING_PROGRESS, progress);
-    
+
     // Update URL query
     updateUrlQuery(url);
   };
@@ -208,10 +254,10 @@ export default function App() {
       storage.keys.READING_PROGRESS,
       null
     );
-    
+
     if (progress) {
     }
-    
+
     return progress;
   };
 
@@ -259,10 +305,10 @@ export default function App() {
     try {
       // Import ProviderFactory dynamically
       const { ProviderFactory } = await import('./providers/ProviderFactory');
-      
+
       // Get appropriate provider for this URL
       const provider = ProviderFactory.getProvider(chapterUrl);
-      
+
       if (!provider) {
         throw new Error(
           'Website này chưa được hỗ trợ. Hiện tại chỉ hỗ trợ: ' +
@@ -273,16 +319,16 @@ export default function App() {
       // Fetch chapter content using the provider
       const chapter = await provider.fetchChapter(chapterUrl);
       setChapterContent(chapter);
-      
+
       // Save to localStorage and update URL
       updateUrlQuery(chapterUrl);
       await saveReadingProgress(chapterUrl, 0, chapter.title);
-      
+
       Alert.alert('Thành công', `Đã tải chương: ${chapter.title}`);
     } catch (error: any) {
       console.error('Error fetching chapter:', error);
       Alert.alert(
-        'Lỗi', 
+        'Lỗi',
         error.message || 'Không thể tải chương. Vui lòng kiểm tra URL và thử lại.'
       );
     } finally {
@@ -308,7 +354,7 @@ export default function App() {
       // Split content into chunks
       const sentences = splitIntoSentences(chapterContent.content);
       const chunks = groupSentencesIntoChunks(sentences, 50, 300);
-      
+
       setTextChunks(chunks);
       setCurrentChunkIndex(0);
       setReadingProgress(0);
@@ -339,7 +385,7 @@ export default function App() {
         onAllComplete: async () => {
           setIsPlaying(false);
           setCurrentChunkIndex(-1);
-          
+
           // Auto play next chapter if enabled
           if (ttsSettings.autoNextChapter && chapterContent?.nextChapterUrl) {
             // Stop current TTS manager first
@@ -347,7 +393,7 @@ export default function App() {
               await ttsManagerRef.current.stop();
               ttsManagerRef.current = null;
             }
-            
+
             // Wait a bit then load next chapter
             setTimeout(async () => {
               try {
@@ -409,14 +455,14 @@ export default function App() {
   const handleSeekStart = () => {
     setIsSeeking(true);
   };
-  
+
   const handleSeekChange = (value: number) => {
     setSeekValue(value);
   };
-  
+
   const handleSeekEnd = async (value: number) => {
     setIsSeeking(false);
-    
+
     if (ttsManagerRef.current && textChunks.length > 0) {
       const targetIndex = Math.floor(value);
       await ttsManagerRef.current.jumpToChunk(targetIndex);
@@ -437,19 +483,19 @@ export default function App() {
     try {
       // Import ProviderFactory dynamically
       const { ProviderFactory } = await import('./providers/ProviderFactory');
-      
+
       // Get appropriate provider for this URL
       const provider = ProviderFactory.getProvider(url);
-      
+
       if (!provider) {
         throw new Error('Provider not found for next chapter');
       }
       const chapter = await provider.fetchChapter(url);
       setChapterContent(chapter);
-      
+
       // Update URL and save progress
       updateUrlQuery(url);
-      
+
       // Split into chunks
       const sentences = splitIntoSentences(chapter.content);
       const chunks = groupSentencesIntoChunks(sentences, 50, 300);
@@ -486,7 +532,7 @@ export default function App() {
         onAllComplete: async () => {
           setIsPlaying(false);
           setCurrentChunkIndex(-1);
-          
+
           // Continue to next chapter if enabled
           if (ttsSettings.autoNextChapter && chapter.nextChapterUrl) {
             // Stop current manager
@@ -494,7 +540,7 @@ export default function App() {
               await ttsManagerRef.current.stop();
               ttsManagerRef.current = null;
             }
-            
+
             setTimeout(async () => {
               try {
                 setChapterUrl(chapter.nextChapterUrl!);
@@ -516,7 +562,7 @@ export default function App() {
       });
 
       ttsManagerRef.current = manager;
-      
+
       await manager.start();
       setIsPlaying(true);
     } catch (error: any) {
@@ -578,7 +624,7 @@ export default function App() {
             autoCapitalize="none"
             autoCorrect={false}
           />
-          
+
           <View style={styles.supportedSites}>
             <Text style={[styles.supportedSitesText, { color: colors.textSecondary }]}>
               Trang hỗ trợ: {getActiveProviders().map((p, i) => (
@@ -618,10 +664,10 @@ export default function App() {
                 </Text>
               )}
             </View>
-            
-            <ScrollView 
+
+            <ScrollView
               ref={contentScrollRef}
-              style={[styles.contentScroll, { backgroundColor: colors.contentBackground }]} 
+              style={[styles.contentScroll, { backgroundColor: colors.contentBackground }]}
               nestedScrollEnabled
             >
               {textChunks.length > 0 ? (
@@ -669,7 +715,7 @@ export default function App() {
         {(
           <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
             <Text style={[styles.sectionTitle, { color: colors.sectionTitle }]}>🎧 Điều khiển phát âm</Text>
-            
+
             {/* Settings Button */}
             <TouchableOpacity
               style={[styles.settingsButton, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}
@@ -726,7 +772,7 @@ export default function App() {
                 <View style={[styles.progressBar, { backgroundColor: colors.inputBackground }]}>
                   <View style={[styles.progressFill, { width: `${readingProgress}%` }]} />
                 </View>
-                
+
                 {/* Seek Slider (Interactive) */}
                 <View style={[styles.seekSliderContainer, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
                   <Text style={[styles.seekLabel, { color: colors.text }]}>⏩ Tua nhanh đến đoạn:</Text>
@@ -760,7 +806,7 @@ export default function App() {
                     Đoạn {Math.floor(seekValue) + 1} / {textChunks.length}
                   </Text>
                 </View>
-                
+
                 {/* Progress Info */}
                 <View style={styles.progressInfo}>
                   <Text style={[styles.progressText, { color: colors.textSecondary }]}>
@@ -772,7 +818,6 @@ export default function App() {
                 </View>
               </View>
             )}
-
             {/* Download Button */}
             {/* <TouchableOpacity
               style={[styles.button, styles.downloadButton, textChunks.length === 0 && styles.buttonDisabled]}
