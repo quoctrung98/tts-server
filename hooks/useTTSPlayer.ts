@@ -1,0 +1,196 @@
+// useTTSPlayer - TTS playback control hook
+import { useState, useRef, useCallback } from 'react';
+import { Alert } from 'react-native';
+import { TTSQueueManager } from '../services/TTSQueueManager';
+import { splitIntoSentences, groupSentencesIntoChunks } from '../utils/textUtils';
+import { TTS_SERVER_URL } from '../config';
+import { TTSSettings } from '../components/SettingsModal';
+import { ChapterContent } from '../providers/IChapterProvider';
+
+export interface UseTTSPlayerReturn {
+    // State
+    isPlaying: boolean;
+    isLoading: boolean;
+    currentChunkIndex: number;
+    textChunks: string[];
+    readingProgress: number;
+    seekValue: number;
+    isSeeking: boolean;
+
+    // Actions
+    startPlaying: (content: ChapterContent, onChunkStart?: ChunkCallback, onComplete?: CompleteCallback) => Promise<void>;
+    togglePlayPause: () => Promise<void>;
+    stop: () => Promise<void>;
+
+    // Seek controls
+    handleSeekStart: () => void;
+    handleSeekChange: (value: number) => void;
+    handleSeekEnd: (value: number) => Promise<void>;
+
+    // Reset
+    reset: () => void;
+}
+
+type ChunkCallback = (index: number, text: string) => void;
+type CompleteCallback = () => void;
+
+/**
+ * Hook for managing TTS audio playback
+ */
+export function useTTSPlayer(settings: TTSSettings): UseTTSPlayerReturn {
+    // Playback state
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [textChunks, setTextChunks] = useState<string[]>([]);
+    const [currentChunkIndex, setCurrentChunkIndex] = useState(-1);
+    const [readingProgress, setReadingProgress] = useState(0);
+
+    // Seek state
+    const [seekValue, setSeekValue] = useState(0);
+    const [isSeeking, setIsSeeking] = useState(false);
+
+    // Refs
+    const ttsManagerRef = useRef<TTSQueueManager | null>(null);
+    const onChunkStartRef = useRef<ChunkCallback | undefined>();
+    const onCompleteRef = useRef<CompleteCallback | undefined>();
+
+    // Start playing content
+    const startPlaying = useCallback(async (
+        content: ChapterContent,
+        onChunkStart?: ChunkCallback,
+        onComplete?: CompleteCallback
+    ) => {
+        setIsLoading(true);
+        onChunkStartRef.current = onChunkStart;
+        onCompleteRef.current = onComplete;
+
+        try {
+            // Stop current playback if any
+            if (ttsManagerRef.current) {
+                await ttsManagerRef.current.stop();
+            }
+
+            // Split content into chunks
+            const sentences = splitIntoSentences(content.content);
+            const chunks = groupSentencesIntoChunks(sentences, 50, 300);
+
+            setTextChunks(chunks);
+            setCurrentChunkIndex(0);
+            setReadingProgress(0);
+            setSeekValue(0);
+
+            // Create TTS manager with current settings
+            const manager = new TTSQueueManager(
+                chunks,
+                TTS_SERVER_URL,
+                settings.voiceName,
+                settings.speed,
+                settings.pitch,
+                settings.volume
+            );
+
+            manager.setCallbacks({
+                onChunkStart: (index, text) => {
+                    setCurrentChunkIndex(index);
+                    setReadingProgress(Math.round(((index + 1) / chunks.length) * 100));
+
+                    // Update seek slider (only if not currently seeking)
+                    setSeekValue(prev => isSeeking ? prev : index);
+
+                    // Call external callback
+                    onChunkStartRef.current?.(index, text);
+                },
+                onChunkEnd: () => { },
+                onAllComplete: async () => {
+                    setIsPlaying(false);
+                    setCurrentChunkIndex(-1);
+                    onCompleteRef.current?.();
+                },
+                onError: (error) => {
+                    Alert.alert('Lỗi', `Lỗi khi đọc: ${error}`);
+                },
+            });
+
+            ttsManagerRef.current = manager;
+
+            // Start playing
+            await manager.start();
+            setIsPlaying(true);
+        } catch (error: any) {
+            console.error('Speech error:', error);
+            Alert.alert('Lỗi', 'Không thể tạo giọng đọc: ' + error.message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [settings, isSeeking]);
+
+    // Toggle play/pause
+    const togglePlayPause = useCallback(async () => {
+        if (!ttsManagerRef.current) return;
+
+        if (isPlaying) {
+            await ttsManagerRef.current.pause();
+            setIsPlaying(false);
+        } else {
+            await ttsManagerRef.current.resume();
+            setIsPlaying(true);
+        }
+    }, [isPlaying]);
+
+    // Stop playback
+    const stop = useCallback(async () => {
+        if (ttsManagerRef.current) {
+            await ttsManagerRef.current.stop();
+            setIsPlaying(false);
+            setCurrentChunkIndex(-1);
+            setReadingProgress(0);
+            setSeekValue(0);
+        }
+    }, []);
+
+    // Seek controls
+    const handleSeekStart = useCallback(() => {
+        setIsSeeking(true);
+    }, []);
+
+    const handleSeekChange = useCallback((value: number) => {
+        setSeekValue(value);
+    }, []);
+
+    const handleSeekEnd = useCallback(async (value: number) => {
+        setIsSeeking(false);
+
+        if (ttsManagerRef.current && textChunks.length > 0) {
+            const targetIndex = Math.floor(value);
+            await ttsManagerRef.current.jumpToChunk(targetIndex);
+            setCurrentChunkIndex(targetIndex);
+            setReadingProgress(Math.round(((targetIndex + 1) / textChunks.length) * 100));
+        }
+    }, [textChunks.length]);
+
+    // Reset state
+    const reset = useCallback(() => {
+        setTextChunks([]);
+        setCurrentChunkIndex(-1);
+        setReadingProgress(0);
+        setSeekValue(0);
+        setIsPlaying(false);
+    }, []);
+
+    return {
+        isPlaying,
+        isLoading,
+        currentChunkIndex,
+        textChunks,
+        readingProgress,
+        seekValue,
+        isSeeking,
+        startPlaying,
+        togglePlayPause,
+        stop,
+        handleSeekStart,
+        handleSeekChange,
+        handleSeekEnd,
+        reset,
+    };
+}
