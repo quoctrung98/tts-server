@@ -1,15 +1,13 @@
-// TTSControlsSection - TTS controls container with settings button
+// TTSControlsSection - Compact TTS controls with slider and buttons in same row
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { PlaybackControls } from './PlaybackControls';
-import { ProgressSeeker } from './ProgressSeeker';
+import { View, Text, StyleSheet } from 'react-native';
+import { CompactPlaybackControls } from './CompactPlaybackControls';
 import { ThemeColors } from '../hooks';
 import { TTSSettings } from './SettingsModal';
 
 interface TTSControlsSectionProps {
     // Settings
     settings: TTSSettings;
-    onOpenSettings: () => void;
 
     // Playback
     isPlaying: boolean;
@@ -33,7 +31,6 @@ interface TTSControlsSectionProps {
 
 export function TTSControlsSection({
     settings,
-    onOpenSettings,
     isPlaying,
     isLoading,
     textChunks,
@@ -48,56 +45,73 @@ export function TTSControlsSection({
     onSeekEnd,
     colors,
 }: TTSControlsSectionProps) {
+    const hasChunks = textChunks.length > 0;
+    const isDisabled = !isPlaying && currentChunkIndex === -1;
+
     return (
         <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
-            <Text style={[styles.sectionTitle, { color: colors.sectionTitle }]}>
-                🎧 Điều khiển phát âm
-            </Text>
-
-            {/* Settings Button */}
-            <TouchableOpacity
-                style={[
-                    styles.settingsButton,
-                    {
-                        backgroundColor: colors.inputBackground,
-                        borderColor: colors.inputBorder,
-                    },
-                ]}
-                onPress={onOpenSettings}
-            >
-                <Text style={[styles.settingsButtonText, { color: colors.text }]}>
-                    ⚙️ Cài đặt giọng nói & tốc độ
-                </Text>
-                <View style={styles.settingsPreview}>
-                    <Text style={styles.settingsPreviewText}>
-                        {settings.voice === 'female' ? '👩' : '👨'} {settings.speed.toFixed(1)}x
-                    </Text>
+            {/* Progress Bar */}
+            {hasChunks && (
+                <View style={[styles.progressBar, { backgroundColor: colors.inputBackground }]}>
+                    <View style={[styles.progressFill, { width: `${readingProgress}%` }]} />
                 </View>
-            </TouchableOpacity>
+            )}
 
-            {/* Playback Controls */}
-            <PlaybackControls
-                isPlaying={isPlaying}
-                isLoading={isLoading}
-                hasChunks={textChunks.length > 0}
-                onPlay={onPlay}
-                onTogglePlayPause={onTogglePlayPause}
-                onStop={onStop}
-                colors={colors}
-            />
+            {/* Controls Row: Buttons + Slider */}
+            <View style={styles.controlsRow}>
+                {/* Seek Slider */}
+                {hasChunks && (
+                    <View style={styles.sliderContainer}>
+                        <input
+                            type="range"
+                            min="0"
+                            max={textChunks.length - 1}
+                            step="1"
+                            value={seekValue}
+                            onChange={(e) => onSeekChange(parseFloat(e.target.value))}
+                            onMouseDown={onSeekStart}
+                            onMouseUp={(e) => onSeekEnd(parseFloat((e.target as HTMLInputElement).value))}
+                            onTouchStart={onSeekStart}
+                            onTouchEnd={(e) => {
+                                const target = e.target as HTMLInputElement;
+                                onSeekEnd(parseFloat(target.value));
+                            }}
+                            disabled={isDisabled}
+                            style={{
+                                flex: 1,
+                                height: 6,
+                                borderRadius: 3,
+                                outline: 'none',
+                                background: 'linear-gradient(to right, #3498db, #2980b9)',
+                                cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                opacity: isDisabled ? 0.5 : 1,
+                                transition: 'opacity 0.2s',
+                            }}
+                        />
+                    </View>
+                )}
 
-            {/* Progress Seeker */}
-            <ProgressSeeker
-                textChunks={textChunks}
-                currentChunkIndex={currentChunkIndex}
-                readingProgress={readingProgress}
-                seekValue={seekValue}
-                isPlaying={isPlaying}
-                onSeekStart={onSeekStart}
-                onSeekChange={onSeekChange}
-                onSeekEnd={onSeekEnd}
-                colors={colors}
-            />
+                {/* Compact Playback Controls */}
+                <CompactPlaybackControls
+                    isPlaying={isPlaying}
+                    isLoading={isLoading}
+                    hasChunks={hasChunks}
+                    onPlay={onPlay}
+                    onTogglePlayPause={onTogglePlayPause}
+                    onStop={onStop}
+                    colors={colors}
+                />
+            </View>
+
+            {/* Progress Info */}
+            {hasChunks && (
+                <View style={styles.progressInfo}>
+                    <Text style={[styles.progressText, { color: colors.textSecondary }]}>
+                        Đoạn {currentChunkIndex + 1} / {textChunks.length}
+                    </Text>
+                    <Text style={styles.progressPercent}>{readingProgress}%</Text>
+                </View>
+            )}
         </View>
     );
 }
@@ -106,40 +120,49 @@ const styles = StyleSheet.create({
     section: {
         backgroundColor: 'white',
         borderRadius: 12,
-        padding: 16,
+        padding: 12,
         marginBottom: 16,
         shadowColor: '#000',
         shadowOpacity: 0.05,
         shadowRadius: 8,
         elevation: 2,
     },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: '600',
+    progressBar: {
+        height: 4,
+        borderRadius: 2,
+        overflow: 'hidden',
         marginBottom: 12,
     },
-    settingsButton: {
+    progressFill: {
+        height: '100%',
+        backgroundColor: '#3498db',
+    },
+    controlsRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 12,
+    },
+    sliderContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    progressInfo: {
+        flexDirection: 'row',
         justifyContent: 'space-between',
-        padding: 16,
-        borderRadius: 8,
-        borderWidth: 1,
-        marginBottom: 16,
+        marginTop: 8,
     },
-    settingsButtonText: {
-        fontSize: 15,
+    progressText: {
+        fontSize: 12,
+    },
+    progressPercent: {
+        fontSize: 12,
         fontWeight: '600',
+        color: '#3498db',
     },
-    settingsPreview: {
-        backgroundColor: '#3498db',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 6,
-    },
-    settingsPreviewText: {
-        color: 'white',
-        fontSize: 14,
-        fontWeight: '600',
+    hint: {
+        fontSize: 13,
+        marginTop: 8,
+        textAlign: 'center',
     },
 });

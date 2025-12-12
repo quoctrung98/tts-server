@@ -92,15 +92,39 @@ export default function App() {
     };
   }, []);
 
-  // Handle fetch chapter
-  const handleFetchChapter = useCallback(async (url?: string) => {
+  // Handle fetch chapter - auto-play after loading
+  const handleFetchChapter = useCallback(async (url?: string, autoPlay: boolean = true) => {
     const targetUrl = url || chapterUrl;
     const chapter = await fetchChapter(targetUrl);
     if (chapter) {
       updateUrlQuery(targetUrl);
       await saveProgress(targetUrl, 0, chapter.title);
+
+      // Auto-play after loading
+      if (autoPlay) {
+        await ttsPlayer.startPlaying(
+          chapter,
+          (index, text) => {
+            saveProgress(targetUrl, index, chapter.title);
+          },
+          async () => {
+            if (settings.autoNextChapter && chapter.nextChapterUrl) {
+              setTimeout(async () => {
+                try {
+                  setChapterUrl(chapter.nextChapterUrl!);
+                  await handleFetchAndPlayNextChapter(chapter.nextChapterUrl!);
+                } catch (error: any) {
+                  Alert.alert('Lỗi', 'Không thể tự động chuyển chương.');
+                }
+              }, 1500);
+            } else {
+              Alert.alert('Hoàn thành', 'Đã đọc xong chương!');
+            }
+          }
+        );
+      }
     }
-  }, [chapterUrl, fetchChapter, updateUrlQuery, saveProgress]);
+  }, [chapterUrl, fetchChapter, updateUrlQuery, saveProgress, ttsPlayer, settings]);
 
   // Handle play
   const handlePlay = useCallback(async () => {
@@ -197,6 +221,7 @@ export default function App() {
         <Header
           isDarkMode={isDarkMode}
           onToggleDarkMode={toggleDarkMode}
+          onOpenSettings={() => setShowSettings(true)}
           colors={colors}
         />
 
@@ -223,7 +248,6 @@ export default function App() {
         {/* TTS Controls Section */}
         <TTSControlsSection
           settings={settings}
-          onOpenSettings={() => setShowSettings(true)}
           isPlaying={ttsPlayer.isPlaying}
           isLoading={ttsPlayer.isLoading}
           textChunks={ttsPlayer.textChunks}

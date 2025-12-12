@@ -49,9 +49,6 @@ export function ProgressSeeker({
                     },
                 ]}
             >
-                <Text style={[styles.seekLabel, { color: colors.text }]}>
-                    ⏩ Tua nhanh đến đoạn:
-                </Text>
                 <input
                     type="range"
                     min="0"
@@ -78,9 +75,6 @@ export function ProgressSeeker({
                         transition: 'opacity 0.2s',
                     }}
                 />
-                <Text style={styles.seekValue}>
-                    Đoạn {Math.floor(seekValue) + 1} / {textChunks.length}
-                </Text>
             </View>
 
             {/* Progress Info */}

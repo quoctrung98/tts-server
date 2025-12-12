@@ -160,7 +160,8 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     contentScroll: {
-        maxHeight: 400,
+        minHeight: 300,
+        maxHeight: 'calc(75vh - 320px)' as any,
         borderRadius: 8,
         padding: 12,
     },
