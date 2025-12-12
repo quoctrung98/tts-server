@@ -21,10 +21,7 @@ export function useWakeLock(isActive: boolean): void {
             if ('wakeLock' in navigator) {
                 try {
                     wakeLock = await navigator.wakeLock.request('screen');
-                    console.log('🔆 Wake Lock acquired - screen will stay on');
-
                     wakeLock.addEventListener('release', () => {
-                        console.log('🔅 Wake Lock released');
                     });
                 } catch (err: any) {
                     console.log('Wake Lock error:', err.message);
