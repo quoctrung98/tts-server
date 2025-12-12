@@ -26,10 +26,7 @@ import { ChapterContentDisplay } from './components/ChapterContentDisplay';
 import { TTSControlsSection } from './components/TTSControlsSection';
 import SettingsModal from './components/SettingsModal';
 
-// Config
-import { TTS_SERVER_URL } from './config';
-import { TTSQueueManager } from './services/TTSQueueManager';
-import { splitIntoSentences, groupSentencesIntoChunks } from './utils/textUtils';
+// Config - no longer needed here as ttsPlayer handles TTS setup
 
 export default function App() {
   // URL State
@@ -151,29 +148,19 @@ export default function App() {
       setChapterContent(chapter);
       updateUrlQuery(url);
 
-      // Split into chunks
-      const sentences = splitIntoSentences(chapter.content);
-      const chunks = groupSentencesIntoChunks(sentences, 50, 300);
-
       // Small delay to ensure state is updated
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Create and start TTS manager directly for auto-continue
-      const manager = new TTSQueueManager(
-        chunks,
-        TTS_SERVER_URL,
-        settings.voiceName,
-        settings.speed,
-        settings.pitch,
-        settings.volume
-      );
-
-      manager.setCallbacks({
-        onChunkStart: (index, text) => {
+      // Use ttsPlayer.startPlaying to properly update all reactive state
+      // This ensures currentChunkIndex and textChunks are updated for highlighting
+      await ttsPlayer.startPlaying(
+        chapter,
+        // onChunkStart callback
+        (index, text) => {
           saveProgress(url, index, chapter.title);
         },
-        onChunkEnd: () => { },
-        onAllComplete: async () => {
+        // onComplete callback
+        async () => {
           if (settings.autoNextChapter && chapter.nextChapterUrl) {
             setTimeout(async () => {
               try {
@@ -186,17 +173,12 @@ export default function App() {
           } else {
             Alert.alert('Hoàn thành', 'Đã đọc xong chương!');
           }
-        },
-        onError: (error) => {
-          Alert.alert('Lỗi', `Lỗi khi đọc: ${error}`);
-        },
-      });
-
-      await manager.start();
+        }
+      );
     } catch (error: any) {
       Alert.alert('Lỗi', `Không thể tự động phát chương tiếp theo: ${error.message}`);
     }
-  }, [settings, saveProgress, updateUrlQuery, setChapterContent]);
+  }, [settings, saveProgress, updateUrlQuery, setChapterContent, ttsPlayer]);
 
   // Background image
   const backgroundImage = {
