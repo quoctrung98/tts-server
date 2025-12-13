@@ -54,27 +54,15 @@ export function ChapterContentDisplay({
 
     return (
         <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
-            <Text style={[styles.sectionTitle, { color: colors.sectionTitle }]}>
-                📖 Nội dung chương
-            </Text>
-
             <View style={styles.chapterInfo}>
-                <Text style={[styles.chapterTitle, { color: colors.text }]}>
-                    {content.title}
-                </Text>
                 {content.novelTitle && (
                     <Text style={[styles.chapterMeta, { color: colors.textSecondary }]}>
                         Truyện: {content.novelTitle}
                     </Text>
                 )}
-                {content.nextChapterUrl !== undefined && (
-                    <Text style={[styles.chapterMeta, { color: colors.textSecondary }]}>
-                        ▶️ Có chương tiếp theo
-                        {autoNextChapter && (
-                            <Text style={styles.autoNextBadge}> • Tự động phát</Text>
-                        )}
-                    </Text>
-                )}
+                <Text style={[styles.chapterTitle, { color: colors.text }]}>
+                    {content.title}
+                </Text>
             </View>
 
             <ScrollView

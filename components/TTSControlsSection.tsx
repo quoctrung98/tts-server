@@ -50,13 +50,6 @@ export function TTSControlsSection({
 
     return (
         <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
-            {/* Progress Bar */}
-            {hasChunks && (
-                <View style={[styles.progressBar, { backgroundColor: colors.inputBackground }]}>
-                    <View style={[styles.progressFill, { width: `${readingProgress}%` }]} />
-                </View>
-            )}
-
             {/* Controls Row: Buttons + Slider */}
             <View style={styles.controlsRow}>
                 {/* Seek Slider */}
