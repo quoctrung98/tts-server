@@ -35,7 +35,7 @@ export default function App() {
 
   // Custom Hooks
   const { isDarkMode, toggleDarkMode, colors } = useDarkMode();
-  const { settings, updateSettings } = useTTSSettings();
+  const { settings, updateSettings, isLoading: isLoadingSettings } = useTTSSettings();
   const {
     chapterContent,
     isLoading: isLoadingChapter,
@@ -51,37 +51,19 @@ export default function App() {
   // Initialize app
   useEffect(() => {
     const initApp = async () => {
-      // Try to load chapter from URL query first, then localStorage
-      const urlChapter = parseUrlQuery();
-      if (urlChapter) {
-        setChapterUrl(urlChapter);
-        // Auto-fetch handled after state update
-      } else {
-        // Load from localStorage
-        const progress = await loadProgress();
-        if (progress) {
-          setChapterUrl(progress.chapterUrl);
+      // Wait for settings to load first
+      if (isLoadingSettings) return;
 
-          // Ask user if they want to continue
-          if (Platform.OS === 'web' && window.confirm) {
-            const shouldContinue = window.confirm(
-              `Tiếp tục đọc chương: ${progress.chapterTitle || 'chương trước'}?`
-            );
-            if (shouldContinue) {
-              handleFetchChapter(progress.chapterUrl);
-            }
-          } else {
-            Alert.alert(
-              'Tiếp tục đọc?',
-              `Bạn có muốn tiếp tục đọc chương: ${progress.chapterTitle || 'chương trước'}?`,
-              [
-                { text: 'Không', style: 'cancel' },
-                { text: 'Có', onPress: () => handleFetchChapter(progress.chapterUrl) },
-              ]
-            );
-          }
-        }
+      // Try to load chapter from URL query first
+      const { chapterUrl: url, chunkIndex: chunk } = parseUrlQuery();
+
+      if (url) {
+        setChapterUrl(url);
+        // Load chapter and seek to chunk from URL
+        handleFetchChapter(url, true, chunk);
       }
+      // LocalStorage fallback removed as requested
+      // The app will now only resume if URL parameters are present
     };
 
     initApp();
@@ -90,15 +72,14 @@ export default function App() {
       // Cleanup on unmount
       ttsPlayer.stop();
     };
-  }, []);
+  }, [isLoadingSettings]);
 
   // Handle fetch chapter - auto-play after loading
-  const handleFetchChapter = useCallback(async (url?: string, autoPlay: boolean = true) => {
+  const handleFetchChapter = useCallback(async (url?: string, autoPlay: boolean = true, startChunk: number = 0) => {
     const targetUrl = url || chapterUrl;
     const chapter = await fetchChapter(targetUrl);
     if (chapter) {
-      updateUrlQuery(targetUrl);
-      await saveProgress(targetUrl, 0, chapter.title);
+      await saveProgress(targetUrl, startChunk, chapter.title);
 
       // Auto-play after loading
       if (autoPlay) {
@@ -120,7 +101,8 @@ export default function App() {
             } else {
               Alert.alert('Hoàn thành', 'Đã đọc xong chương!');
             }
-          }
+          },
+          startChunk
         );
       }
     }
@@ -170,7 +152,7 @@ export default function App() {
 
       const chapter = await provider.fetchChapter(url);
       setChapterContent(chapter);
-      updateUrlQuery(url);
+      updateUrlQuery(url, 0);
 
       // Small delay to ensure state is updated
       await new Promise(resolve => setTimeout(resolve, 500));

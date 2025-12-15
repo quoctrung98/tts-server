@@ -5,41 +5,50 @@ import { storage, ReadingProgress } from '../utils/storage';
 
 export interface UseReadingProgressReturn {
     progress: ReadingProgress | null;
-    saveProgress: (url: string, chunkIndex: number, title?: string) => Promise<void>;
+    saveProgress: (url: string, chunkIndex: number, title?: string) => void;
     loadProgress: () => Promise<ReadingProgress | null>;
-    updateUrlQuery: (chapterUrl: string) => void;
-    parseUrlQuery: () => string | null;
+    updateUrlQuery: (chapterUrl: string, chunkIndex: number) => void;
+    parseUrlQuery: () => { chapterUrl: string | null; chunkIndex: number };
 }
 
 /**
- * Hook for managing reading progress with localStorage and URL sync
+ * Hook for managing reading progress with URL sync (localStorage removed)
  */
 export function useReadingProgress(): UseReadingProgressReturn {
     const [progress, setProgress] = useState<ReadingProgress | null>(null);
 
     // Update URL query params (for bookmarking)
-    const updateUrlQuery = useCallback((chapterUrl: string) => {
-        if (Platform.OS === 'web' && window.history && window.history.pushState) {
+    const updateUrlQuery = useCallback((chapterUrl: string, chunkIndex: number) => {
+        if (Platform.OS === 'web' && window.history && window.history.replaceState) {
             const url = new URL(window.location.href);
             url.searchParams.set('chapter', chapterUrl);
-            window.history.pushState({}, '', url.toString());
+            if (chunkIndex > 0) {
+                url.searchParams.set('chunk', chunkIndex.toString());
+            } else {
+                url.searchParams.delete('chunk');
+            }
+            window.history.replaceState({}, '', url.toString());
         }
     }, []);
 
     // Parse URL query params on load
-    const parseUrlQuery = useCallback((): string | null => {
+    const parseUrlQuery = useCallback((): { chapterUrl: string | null; chunkIndex: number } => {
         if (Platform.OS === 'web') {
             const urlParams = new URLSearchParams(window.location.search);
             const chapterUrl = urlParams.get('chapter');
-            if (chapterUrl) {
-                return chapterUrl;
-            }
+            const chunkStr = urlParams.get('chunk');
+            const chunkIndex = chunkStr ? parseInt(chunkStr, 10) : 0;
+
+            return {
+                chapterUrl: chapterUrl || null,
+                chunkIndex: isNaN(chunkIndex) ? 0 : chunkIndex
+            };
         }
-        return null;
+        return { chapterUrl: null, chunkIndex: 0 };
     }, []);
 
-    // Save reading progress
-    const saveProgress = useCallback(async (
+    // Save reading progress - now just updates URL
+    const saveProgress = useCallback((
         url: string,
         chunkIndex: number,
         title?: string
@@ -52,22 +61,13 @@ export function useReadingProgress(): UseReadingProgressReturn {
         };
 
         setProgress(newProgress);
-        await storage.save(storage.keys.READING_PROGRESS, newProgress);
-        updateUrlQuery(url);
+        // storage.save call removed as requested
+        updateUrlQuery(url, chunkIndex);
     }, [updateUrlQuery]);
 
-    // Load reading progress
+    // Load reading progress - deprecated/noop for now as we use URL
     const loadProgress = useCallback(async (): Promise<ReadingProgress | null> => {
-        const savedProgress = await storage.load<ReadingProgress | null>(
-            storage.keys.READING_PROGRESS,
-            null
-        );
-
-        if (savedProgress) {
-            setProgress(savedProgress);
-        }
-
-        return savedProgress;
+        return null;
     }, []);
 
     return {

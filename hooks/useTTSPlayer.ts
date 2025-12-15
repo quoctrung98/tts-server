@@ -18,7 +18,7 @@ export interface UseTTSPlayerReturn {
     isSeeking: boolean;
 
     // Actions
-    startPlaying: (content: ChapterContent, onChunkStart?: ChunkCallback, onComplete?: CompleteCallback) => Promise<void>;
+    startPlaying: (content: ChapterContent, onChunkStart?: ChunkCallback, onComplete?: CompleteCallback, startIndex?: number) => Promise<void>;
     togglePlayPause: () => Promise<void>;
     stop: () => Promise<void>;
 
@@ -51,14 +51,15 @@ export function useTTSPlayer(settings: TTSSettings): UseTTSPlayerReturn {
 
     // Refs
     const ttsManagerRef = useRef<TTSQueueManager | null>(null);
-    const onChunkStartRef = useRef<ChunkCallback | undefined>();
-    const onCompleteRef = useRef<CompleteCallback | undefined>();
+    const onChunkStartRef = useRef<ChunkCallback | undefined>(undefined);
+    const onCompleteRef = useRef<CompleteCallback | undefined>(undefined);
 
     // Start playing content
     const startPlaying = useCallback(async (
         content: ChapterContent,
         onChunkStart?: ChunkCallback,
-        onComplete?: CompleteCallback
+        onComplete?: CompleteCallback,
+        startIndex: number = 0
     ) => {
         setIsLoading(true);
         onChunkStartRef.current = onChunkStart;
@@ -75,9 +76,9 @@ export function useTTSPlayer(settings: TTSSettings): UseTTSPlayerReturn {
             const chunks = groupSentencesIntoChunks(sentences, 50, 300);
 
             setTextChunks(chunks);
-            setCurrentChunkIndex(0);
-            setReadingProgress(0);
-            setSeekValue(0);
+            setCurrentChunkIndex(startIndex);
+            setReadingProgress(chunks.length > 0 ? Math.round(((startIndex + 1) / chunks.length) * 100) : 0);
+            setSeekValue(startIndex);
 
             // Create TTS manager with current settings
             const manager = new TTSQueueManager(
@@ -114,11 +115,17 @@ export function useTTSPlayer(settings: TTSSettings): UseTTSPlayerReturn {
             ttsManagerRef.current = manager;
 
             // Start playing
-            await manager.start();
+            await manager.start(startIndex);
             setIsPlaying(true);
         } catch (error: any) {
             console.error('Speech error:', error);
-            Alert.alert('Lỗi', 'Không thể tạo giọng đọc: ' + error.message);
+            if (error.name === 'NotAllowedError') {
+                // Autoplay blocked - expected browser behavior
+                // Just stop loading state, user will need to press play manually
+                setIsPlaying(false);
+            } else {
+                Alert.alert('Lỗi', 'Không thể tạo giọng đọc: ' + error.message);
+            }
         } finally {
             setIsLoading(false);
         }

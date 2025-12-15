@@ -16,18 +16,18 @@ export class TTSQueueManager {
   private currentIndex: number = -1;
   private bufferSize: number = 5;
   private isPlaying: boolean = false;
-  
+
   private ttsServerUrl: string;
   private voice: string;
   private speed: number;
   private pitch: number;
   private volume: number;
-  
+
   private onChunkStart?: (index: number, text: string) => void;
   private onChunkEnd?: (index: number) => void;
   private onAllComplete?: () => void;
   private onError?: (error: string) => void;
-  
+
   constructor(
     texts: string[],
     ttsServerUrl: string,
@@ -41,7 +41,7 @@ export class TTSQueueManager {
     this.speed = speed;
     this.pitch = pitch;
     this.volume = volume;
-    
+
     // Initialize chunks
     this.chunks = texts.map((text, index) => ({
       index,
@@ -53,7 +53,7 @@ export class TTSQueueManager {
       error: null,
     }));
   }
-  
+
   setCallbacks(callbacks: {
     onChunkStart?: (index: number, text: string) => void;
     onChunkEnd?: (index: number) => void;
@@ -65,18 +65,18 @@ export class TTSQueueManager {
     this.onAllComplete = callbacks.onAllComplete;
     this.onError = callbacks.onError;
   }
-  
-  async start() {
+
+  async start(startIndex: number = 0) {
     this.isPlaying = true;
-    this.currentIndex = 0;
-    
+    this.currentIndex = startIndex;
+
     // Pre-fetch first few chunks
     await this.prefetchChunks();
-    
+
     // Start playing
     await this.playNext();
   }
-  
+
   async pause() {
     this.isPlaying = false;
     const current = this.chunks[this.currentIndex];
@@ -84,7 +84,7 @@ export class TTSQueueManager {
       await current.player.pause();
     }
   }
-  
+
   async resume() {
     this.isPlaying = true;
     const current = this.chunks[this.currentIndex];
@@ -92,10 +92,10 @@ export class TTSQueueManager {
       await current.player.play();
     }
   }
-  
+
   async stop() {
     this.isPlaying = false;
-    
+
     // Stop and unload all players
     for (const chunk of this.chunks) {
       if (chunk.player) {
@@ -108,23 +108,23 @@ export class TTSQueueManager {
         chunk.player = null;
       }
     }
-    
+
     this.currentIndex = -1;
   }
-  
+
   getCurrentIndex(): number {
     return this.currentIndex;
   }
-  
+
   getTotalChunks(): number {
     return this.chunks.length;
   }
-  
+
   getProgress(): number {
     if (this.chunks.length === 0) return 0;
     return Math.round(((this.currentIndex + 1) / this.chunks.length) * 100);
   }
-  
+
   /**
    * Jump to a specific chunk index
    */
@@ -133,10 +133,10 @@ export class TTSQueueManager {
       console.error('Invalid chunk index:', index);
       return;
     }
-    
+
     // Store playing state
     const wasPlaying = this.isPlaying;
-    
+
     // IMPORTANT: Stop ALL currently playing audio
     // Stop and cleanup current chunk
     if (this.currentIndex >= 0 && this.currentIndex < this.chunks.length) {
@@ -151,7 +151,7 @@ export class TTSQueueManager {
         }
       }
     }
-    
+
     // Also cleanup any other chunks that might be playing (safety check)
     for (let i = 0; i < this.chunks.length; i++) {
       if (i !== index && this.chunks[i]?.player) {
@@ -164,12 +164,12 @@ export class TTSQueueManager {
         }
       }
     }
-    
+
     // Update index
     this.currentIndex = index;
     // Pre-fetch chunks around the target index
     await this.prefetchChunks();
-    
+
     // Resume playing if was playing before
     if (wasPlaying) {
       this.isPlaying = true;
@@ -177,35 +177,35 @@ export class TTSQueueManager {
     } else {
     }
   }
-  
+
   private async prefetchChunks() {
     const startIdx = this.currentIndex;
     const endIdx = Math.min(startIdx + this.bufferSize, this.chunks.length);
-    
+
     const promises = [];
     for (let i = startIdx; i < endIdx; i++) {
       if (!this.chunks[i].isLoaded && !this.chunks[i].isLoading) {
         promises.push(this.fetchChunk(i));
       }
     }
-    
+
     await Promise.all(promises);
   }
-  
+
   private async fetchChunk(index: number) {
     const chunk = this.chunks[index];
     if (!chunk || chunk.isLoading || chunk.isLoaded) return;
-    
+
     chunk.isLoading = true;
-    
+
     try {
       // Calculate rate based on speed
       const ratePercent = Math.round((this.speed - 1.0) * 100);
       const rateString = `${ratePercent >= 0 ? '+' : ''}${ratePercent}%`;
-      
+
       // Calculate pitch string
       const pitchString = `${this.pitch >= 0 ? '+' : ''}${this.pitch}Hz`;
-      
+
       // Request TTS
       const response = await fetch(`${this.ttsServerUrl}/speak`, {
         method: 'POST',
@@ -217,14 +217,14 @@ export class TTSQueueManager {
           pitch: pitchString,
         }),
       });
-      
+
       if (!response.ok) {
         throw new Error('TTS request failed');
       }
-      
+
       const blob = await response.blob();
       const audioUri = URL.createObjectURL(blob);
-      
+
       chunk.audioUri = audioUri;
       chunk.isLoaded = true;
     } catch (error: any) {
@@ -234,15 +234,15 @@ export class TTSQueueManager {
       chunk.isLoading = false;
     }
   }
-  
+
   private async playNext() {
-    
+
     if (!this.isPlaying) {
       return;
     }
-    
+
     if (this.currentIndex >= this.chunks.length) {
-      
+
       try {
         if (this.onAllComplete) {
           this.onAllComplete();
@@ -254,14 +254,14 @@ export class TTSQueueManager {
       }
       return;
     }
-    
+
     const chunk = this.chunks[this.currentIndex];
-    
+
     // Wait for chunk to be loaded
     while (chunk.isLoading) {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    
+
     if (chunk.error) {
       console.error(`Error in chunk ${this.currentIndex}:`, chunk.error);
       this.onError?.(chunk.error);
@@ -269,19 +269,19 @@ export class TTSQueueManager {
       await this.playNext();
       return;
     }
-    
+
     if (!chunk.audioUri) {
       console.error(`No audio URI for chunk ${this.currentIndex}`);
       this.currentIndex++;
       await this.playNext();
       return;
     }
-    
+
     try {
       // Create audio player
       const player = new AudioPlayer();
       const currentIdx = this.currentIndex; // Capture index
-      
+
       // Load audio with callbacks and volume
       await player.load(
         chunk.audioUri,
@@ -292,28 +292,28 @@ export class TTSQueueManager {
             if (this.currentIndex !== currentIdx) {
               return;
             }
-            
+
             // Cleanup this chunk's player
             const finishedChunk = this.chunks[currentIdx];
             if (finishedChunk.player) {
-              finishedChunk.player.unload().catch(() => {});
+              finishedChunk.player.unload().catch(() => { });
               finishedChunk.player = null;
             }
-            
+
             this.onChunkEnd?.(currentIdx);
-            
+
             // Move to next
             this.currentIndex++;
             this.playNext();
           },
           onError: (error) => {
             console.error(`❌ Error playing chunk ${currentIdx}:`, error);
-            
+
             // Only proceed if this is still the current chunk
             if (this.currentIndex !== currentIdx) {
               return;
             }
-            
+
             this.onError?.(error);
             this.currentIndex++;
             this.playNext();
@@ -321,17 +321,17 @@ export class TTSQueueManager {
         },
         this.volume
       );
-      
+
       chunk.player = player;
-      
+
       // Start playing
       await player.play();
-      
+
       this.onChunkStart?.(this.currentIndex, chunk.text);
-      
+
       // Pre-fetch next chunks while playing
       this.prefetchChunks();
-      
+
     } catch (error: any) {
       console.error(`Failed to play chunk ${this.currentIndex}:`, error);
       this.onError?.(error.message);
@@ -339,6 +339,6 @@ export class TTSQueueManager {
       await this.playNext();
     }
   }
-  
+
 }
 
