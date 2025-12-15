@@ -11,8 +11,8 @@
  * - Set EXPO_PUBLIC_TTS_URL in Vercel/Netlify environment variables
  * - Example: https://your-app.onrender.com
  */
-export const TTS_SERVER_URL = 
-  (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_TTS_URL) || 
+export const TTS_SERVER_URL =
+  (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_TTS_URL) ||
   'https://appreader-tts-server-production.up.railway.app';
 
 /**
@@ -20,11 +20,11 @@ export const TTS_SERVER_URL =
  */
 export const DEFAULT_TTS_SETTINGS = {
   voice: 'vi-VN-HoaiMyNeural',
-  speed: 1.0,
+  speed: 1.5,
   minSpeed: 0.5,
   maxSpeed: 2.0,
   speedStep: 0.1,
-  pitch: '+0Hz',
+  pitch: '-10Hz',
 };
 
 /**
@@ -79,7 +79,7 @@ export function getActiveProviders() {
  */
 export function isSupportedDomain(url: string): boolean {
   const activeProviders = getActiveProviders();
-  return activeProviders.some(provider => 
+  return activeProviders.some(provider =>
     provider.domains.some(domain => url.toLowerCase().includes(domain.toLowerCase()))
   );
 }

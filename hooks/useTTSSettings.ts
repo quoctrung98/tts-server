@@ -6,10 +6,10 @@ import { TTSSettings } from '../components/SettingsModal';
 const DEFAULT_SETTINGS: TTSSettings = {
     voice: 'female',
     voiceName: 'vi-VN-HoaiMyNeural',
-    speed: 1.0,
-    pitch: 0,
-    volume: 0.8,
-    autoNextChapter: false,
+    speed: 1.5,
+    pitch: -10,
+    volume: 1.0,
+    autoNextChapter: true,
 };
 
 export interface UseTTSSettingsReturn {
