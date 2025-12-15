@@ -56,7 +56,6 @@ export function ChapterUrlInput({
                     {getActiveProviders().map((p, i) => (
                         <Text key={i} style={styles.badge}>
                             {p.name}
-                            {i < getActiveProviders().length - 1 ? ', ' : ''}
                         </Text>
                     ))}
                 </Text>
