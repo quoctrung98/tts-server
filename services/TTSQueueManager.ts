@@ -71,7 +71,7 @@ export class TTSQueueManager {
     this.currentIndex = startIndex;
 
     // Pre-fetch first few chunks
-    await this.prefetchChunks();
+    this.prefetchChunks();
 
     // Start playing
     await this.playNext();
@@ -168,7 +168,7 @@ export class TTSQueueManager {
     // Update index
     this.currentIndex = index;
     // Pre-fetch chunks around the target index
-    await this.prefetchChunks();
+    this.prefetchChunks();
 
     // Resume playing if was playing before
     if (wasPlaying) {
