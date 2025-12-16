@@ -13,6 +13,7 @@ export interface ThemeColors {
     contentBackground: string;
     highlightBackground: string;
     highlightBorder: string;
+    highlightText: string;
     shadowColor: string;
 }
 
@@ -27,6 +28,7 @@ const LIGHT_COLORS: ThemeColors = {
     contentBackground: '#f8f9fa',
     highlightBackground: '#fff3cd',
     highlightBorder: '#ffc107',
+    highlightText: '#000000',
     shadowColor: '#000',
 };
 
@@ -39,8 +41,9 @@ const DARK_COLORS: ThemeColors = {
     inputBorder: '#4d4d4d',
     sectionTitle: '#ffffff',
     contentBackground: '#2d2d2d',
-    highlightBackground: '#fff3cd',
-    highlightBorder: '#9a9a00',
+    highlightBackground: '#333333',
+    highlightBorder: '#666666',
+    highlightText: '#ffffff',
     shadowColor: '#000',
 };
 

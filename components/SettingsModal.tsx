@@ -17,6 +17,7 @@ export interface TTSSettings {
   pitch: number;
   volume: number;
   autoNextChapter: boolean;
+  enablePitchBlack?: boolean;
 }
 
 interface SettingsModalProps {
@@ -80,7 +81,7 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>🎤 Giọng nói</Text>
               <Text style={styles.sectionSubtitle}>Chọn giọng nói tiếng Việt</Text>
-              
+
               <View style={styles.voiceOptions}>
                 <TouchableOpacity
                   style={[
@@ -135,7 +136,7 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
               <Text style={styles.sectionSubtitle}>
                 Điều chỉnh tốc độ phát từ 0.5x (chậm) đến 2.0x (nhanh)
               </Text>
-              
+
               <View style={styles.sliderContainer}>
                 <input
                   type="range"
@@ -147,7 +148,7 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
                   style={sliderStyle}
                 />
               </View>
-              
+
               <View style={styles.sliderLabels}>
                 <Text style={styles.sliderLabel}>0.5x</Text>
                 <Text style={styles.sliderLabel}>1.0x</Text>
@@ -164,7 +165,7 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
               <Text style={styles.sectionSubtitle}>
                 Điều chỉnh cao độ giọng nói từ -10 Hz (thấp hơn) đến +10 Hz (cao hơn)
               </Text>
-              
+
               <View style={styles.sliderContainer}>
                 <input
                   type="range"
@@ -176,7 +177,7 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
                   style={sliderStyle}
                 />
               </View>
-              
+
               <View style={styles.sliderLabels}>
                 <Text style={styles.sliderLabel}>-10 Hz</Text>
                 <Text style={styles.sliderLabel}>0 Hz</Text>
@@ -193,7 +194,7 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
               <Text style={styles.sectionSubtitle}>
                 Điều chỉnh âm lượng từ 0% (tắt tiếng) đến 100% (tối đa)
               </Text>
-              
+
               <View style={styles.sliderContainer}>
                 <input
                   type="range"
@@ -205,7 +206,7 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
                   style={sliderStyle}
                 />
               </View>
-              
+
               <View style={styles.sliderLabels}>
                 <Text style={styles.sliderLabel}>0%</Text>
                 <Text style={styles.sliderLabel}>50%</Text>
@@ -227,8 +228,32 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
                     type="checkbox"
                     checked={localSettings.autoNextChapter}
                     onChange={(e) => updateSetting('autoNextChapter', e.target.checked)}
-                    style={{ 
-                      width: 44, 
+                    style={{
+                      width: 44,
+                      height: 24,
+                      cursor: 'pointer',
+                    }}
+                  />
+                </View>
+              </View>
+            </View>
+
+            {/* Pitch Black Mode Toggle */}
+            <View style={styles.section}>
+              <View style={styles.toggleRow}>
+                <View style={styles.toggleLeft}>
+                  <Text style={styles.sectionTitle}>🖤 Nền đen hoàn toàn (Pitch Black)</Text>
+                  <Text style={styles.sectionSubtitle}>
+                    Sử dụng nền đen tuyệt đối, tiết kiệm pin cho màn hình OLED (chỉ hiển thị tốt khi bật chế độ tối)
+                  </Text>
+                </View>
+                <View style={styles.toggleSwitch}>
+                  <input
+                    type="checkbox"
+                    checked={localSettings.enablePitchBlack || false}
+                    onChange={(e) => updateSetting('enablePitchBlack', e.target.checked)}
+                    style={{
+                      width: 44,
                       height: 24,
                       cursor: 'pointer',
                     }}
@@ -243,7 +268,7 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
             <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
               <Text style={styles.cancelButtonText}>Hủy</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
               <Text style={styles.saveButtonText}>💾 Lưu cài đặt</Text>
             </TouchableOpacity>
@@ -301,7 +326,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 24,
-    maxHeight: '60vh',
+    maxHeight: '60%',
     flexGrow: 0,
     flexShrink: 1,
   },

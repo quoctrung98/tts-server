@@ -94,7 +94,10 @@ export function ChapterContentDisplay({
                                 style={[
                                     styles.contentChunk,
                                     { color: colors.text },
-                                    index === currentChunkIndex && styles.contentChunkHighlighted,
+                                    index === currentChunkIndex && [
+                                        styles.contentChunkHighlighted,
+                                        { color: colors.highlightText }
+                                    ],
                                 ]}
                             >
                                 {chunk}
@@ -173,7 +176,6 @@ const styles = StyleSheet.create({
     },
     contentChunkHighlighted: {
         fontWeight: '600',
-        color: '#000',
     },
     contentHint: {
         fontSize: 13,

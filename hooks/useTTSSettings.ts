@@ -10,6 +10,7 @@ const DEFAULT_SETTINGS: TTSSettings = {
     pitch: -10,
     volume: 1.0,
     autoNextChapter: true,
+    enablePitchBlack: false,
 };
 
 export interface UseTTSSettingsReturn {

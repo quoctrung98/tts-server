@@ -34,8 +34,24 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
 
   // Custom Hooks
-  const { isDarkMode, toggleDarkMode, colors } = useDarkMode();
+  const { isDarkMode, toggleDarkMode, colors: baseColors } = useDarkMode();
   const { settings, updateSettings, isLoading: isLoadingSettings } = useTTSSettings();
+
+  // Apply Pitch Black mode override
+  const colors = React.useMemo(() => {
+    if (isDarkMode && settings.enablePitchBlack) {
+      return {
+        ...baseColors,
+        background: '#111111',
+        cardBackground: '#313131',
+        contentBackground: '#313131',
+        // Ensure text contrast on pitch black
+        sectionTitle: '#ffffff',
+      };
+    }
+    return baseColors;
+  }, [baseColors, isDarkMode, settings.enablePitchBlack]);
+
   const {
     chapterContent,
     isLoading: isLoadingChapter,
@@ -193,11 +209,13 @@ export default function App() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <Image
-        source={backgroundImage}
-        style={StyleSheet.absoluteFillObject}
-        resizeMode="cover"
-      />
+      {(!settings.enablePitchBlack || !isDarkMode) && (
+        <Image
+          source={backgroundImage}
+          style={StyleSheet.absoluteFillObject}
+          resizeMode="cover"
+        />
+      )}
       <ScrollView contentContainerStyle={styles.content}>
         {/* Header */}
         <Header
