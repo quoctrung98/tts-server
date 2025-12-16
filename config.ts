@@ -64,7 +64,7 @@ export const APP_INFO = {
   version: '1.0.0',
   description: 'Ứng dụng đọc truyện tiếng Việt với TTS',
   author: 'Your Name',
-  repository: 'https://github.com/yourusername/AppReaderTTS',
+  repository: 'https://github.com/yourusername/Đọc truyện Audio',
 };
 
 /**

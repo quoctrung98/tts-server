@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "AppReaderTTS",
-    "slug": "AppReaderTTS",
+    "name": "Đọc truyện Audio",
+    "slug": "Đọc truyện Audio",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

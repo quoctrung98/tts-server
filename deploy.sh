@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# 🚀 Quick Deploy Script for AppReaderTTS
+# 🚀 Quick Deploy Script for Đọc truyện Audio
 
 echo "========================================="
-echo "🚀 AppReaderTTS Deployment Script"
+echo "🚀 Đọc truyện Audio Deployment Script"
 echo "========================================="
 echo ""
 
