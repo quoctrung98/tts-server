@@ -7,11 +7,11 @@
 export function splitIntoSentences(text: string): string[] {
   // Replace multiple spaces/newlines with single space
   const normalized = text.replace(/\s+/g, ' ').trim();
-  
+
   // Split by sentence-ending punctuation
   // Keep the punctuation with the sentence
   const sentences = normalized.split(/(?<=[.!?…])\s+/);
-  
+
   // Filter out empty sentences and very short ones
   return sentences
     .map(s => s.trim())
@@ -23,13 +23,13 @@ export function splitIntoSentences(text: string): string[] {
  * Each chunk should be 1-3 sentences or ~100-300 characters
  */
 export function groupSentencesIntoChunks(
-  sentences: string[], 
+  sentences: string[],
   minChunkSize: number = 50,
   maxChunkSize: number = 300
 ): string[] {
   const chunks: string[] = [];
   let currentChunk = '';
-  
+
   for (const sentence of sentences) {
     // If adding this sentence would exceed max, save current and start new
     if (currentChunk && (currentChunk.length + sentence.length) > maxChunkSize) {
@@ -37,7 +37,7 @@ export function groupSentencesIntoChunks(
       currentChunk = sentence;
     } else {
       currentChunk += (currentChunk ? ' ' : '') + sentence;
-      
+
       // If chunk is large enough, save it
       if (currentChunk.length >= minChunkSize) {
         chunks.push(currentChunk.trim());
@@ -45,12 +45,12 @@ export function groupSentencesIntoChunks(
       }
     }
   }
-  
+
   // Add remaining text
   if (currentChunk.trim()) {
     chunks.push(currentChunk.trim());
   }
-  
+
   return chunks;
 }
 
@@ -81,16 +81,24 @@ export function restoreCensoredWords(text: string): string {
     'k** r*n': 'khẽ rên',
     'b* ng*c': 'bộ ngực',
     'h**p': 'hiếp',
-    'r*n r*': 'rên rỉ'
+    'r*n r*': 'rên rỉ',
+    'c·hết': 'chết',
+    'b·ốc k·hói': 'bốc khói',
+    'v·ũ k·hí': 'vũ khí',
+    'q·uân đ·ội': 'quân đội',
+    'l·ạm d·ụng': 'lạm dụng',
+    'v·a c·hạm': 'va chạm',
+    't·ai n·ạn': 'tai nạn',
+    '·': ''
   };
-  
+
   let restoredText = text;
-  
+
   // Replace each censored pattern with its original form
   for (const [censored, original] of Object.entries(censoredWordMap)) {
     restoredText = restoredText.replaceAll(censored, original);
   }
-  
+
   return restoredText;
 }
 

@@ -314,6 +314,13 @@ export class TTSQueueManager {
               return;
             }
 
+            // Check for autoplay policy error
+            if (error.includes('NotAllowedError') || error.includes('user didn\'t interact')) {
+              this.isPlaying = false;
+              this.onError?.('NotAllowedError');
+              return;
+            }
+
             this.onError?.(error);
             this.currentIndex++;
             this.playNext();
@@ -334,6 +341,14 @@ export class TTSQueueManager {
 
     } catch (error: any) {
       console.error(`Failed to play chunk ${this.currentIndex}:`, error);
+
+      // Check for autoplay policy error
+      if (error.name === 'NotAllowedError' || error.message?.includes('NotAllowedError') || error.message?.includes('user didn\'t interact')) {
+        this.isPlaying = false;
+        this.onError?.('NotAllowedError');
+        return;
+      }
+
       this.onError?.(error.message);
       this.currentIndex++;
       await this.playNext();

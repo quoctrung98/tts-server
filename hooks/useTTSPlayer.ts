@@ -16,6 +16,7 @@ export interface UseTTSPlayerReturn {
     readingProgress: number;
     seekValue: number;
     isSeeking: boolean;
+    isWaitingForInteraction: boolean;
 
     // Actions
     startPlaying: (content: ChapterContent, onChunkStart?: ChunkCallback, onComplete?: CompleteCallback, startIndex?: number) => Promise<void>;
@@ -48,6 +49,7 @@ export function useTTSPlayer(settings: TTSSettings): UseTTSPlayerReturn {
     // Seek state
     const [seekValue, setSeekValue] = useState(0);
     const [isSeeking, setIsSeeking] = useState(false);
+    const [isWaitingForInteraction, setIsWaitingForInteraction] = useState(false);
 
     // Refs
     const ttsManagerRef = useRef<TTSQueueManager | null>(null);
@@ -108,7 +110,13 @@ export function useTTSPlayer(settings: TTSSettings): UseTTSPlayerReturn {
                     onCompleteRef.current?.();
                 },
                 onError: (error) => {
-                    Alert.alert('Lỗi', `Lỗi khi đọc: ${error}`);
+                    if (error === 'NotAllowedError' || error.includes('not allowed')) {
+                        setIsPlaying(false);
+                        setIsWaitingForInteraction(true);
+                        // Don't alert, UI will show resume button
+                    } else {
+                        Alert.alert('Lỗi', `Lỗi khi đọc: ${error}`);
+                    }
                 },
             });
 
@@ -119,10 +127,10 @@ export function useTTSPlayer(settings: TTSSettings): UseTTSPlayerReturn {
             setIsPlaying(true);
         } catch (error: any) {
             console.error('Speech error:', error);
-            if (error.name === 'NotAllowedError') {
+            if (error.name === 'NotAllowedError' || error.message?.includes('NotAllowedError')) {
                 // Autoplay blocked - expected browser behavior
-                // Just stop loading state, user will need to press play manually
                 setIsPlaying(false);
+                setIsWaitingForInteraction(true);
             } else {
                 Alert.alert('Lỗi', 'Không thể tạo giọng đọc: ' + error.message);
             }
@@ -182,6 +190,7 @@ export function useTTSPlayer(settings: TTSSettings): UseTTSPlayerReturn {
         setReadingProgress(0);
         setSeekValue(0);
         setIsPlaying(false);
+        setIsWaitingForInteraction(false);
     }, []);
 
     return {
@@ -192,6 +201,7 @@ export function useTTSPlayer(settings: TTSSettings): UseTTSPlayerReturn {
         readingProgress,
         seekValue,
         isSeeking,
+        isWaitingForInteraction,
         startPlaying,
         togglePlayPause,
         stop,

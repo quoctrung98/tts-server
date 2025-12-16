@@ -1,6 +1,6 @@
 // TTSControlsSection - Compact TTS controls with slider and buttons in same row
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { CompactPlaybackControls } from './CompactPlaybackControls';
 import { ThemeColors } from '../hooks';
 import { TTSSettings } from './SettingsModal';
@@ -16,6 +16,7 @@ interface TTSControlsSectionProps {
     currentChunkIndex: number;
     readingProgress: number;
     seekValue: number;
+    isWaitingForInteraction?: boolean;
 
     // Actions
     onPlay: () => void;
@@ -43,6 +44,7 @@ export function TTSControlsSection({
     onSeekStart,
     onSeekChange,
     onSeekEnd,
+    isWaitingForInteraction = false,
     colors,
 }: TTSControlsSectionProps) {
     const hasChunks = textChunks.length > 0;
@@ -85,15 +87,24 @@ export function TTSControlsSection({
                 )}
 
                 {/* Compact Playback Controls */}
-                <CompactPlaybackControls
-                    isPlaying={isPlaying}
-                    isLoading={isLoading}
-                    hasChunks={hasChunks}
-                    onPlay={onPlay}
-                    onTogglePlayPause={onTogglePlayPause}
-                    onStop={onStop}
-                    colors={colors}
-                />
+                {isWaitingForInteraction ? (
+                    <TouchableOpacity
+                        style={[styles.resumeButton, { backgroundColor: colors.highlightBorder }]}
+                        onPress={onTogglePlayPause}
+                    >
+                        <Text style={styles.resumeButtonText}>▶️ Nhấn để nghe</Text>
+                    </TouchableOpacity>
+                ) : (
+                    <CompactPlaybackControls
+                        isPlaying={isPlaying}
+                        isLoading={isLoading}
+                        hasChunks={hasChunks}
+                        onPlay={onPlay}
+                        onTogglePlayPause={onTogglePlayPause}
+                        onStop={onStop}
+                        colors={colors}
+                    />
+                )}
             </View>
 
             {/* Progress Info */}
@@ -157,5 +168,18 @@ const styles = StyleSheet.create({
         fontSize: 13,
         marginTop: 8,
         textAlign: 'center',
+    },
+    resumeButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 120,
+    },
+    resumeButtonText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 14,
     },
 });

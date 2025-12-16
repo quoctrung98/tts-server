@@ -260,6 +260,7 @@ export default function App() {
           onSeekStart={ttsPlayer.handleSeekStart}
           onSeekChange={ttsPlayer.handleSeekChange}
           onSeekEnd={ttsPlayer.handleSeekEnd}
+          isWaitingForInteraction={ttsPlayer.isWaitingForInteraction}
           colors={colors}
         />
       </ScrollView>
