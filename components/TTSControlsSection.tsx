@@ -86,25 +86,15 @@ export function TTSControlsSection({
                     </View>
                 )}
 
-                {/* Compact Playback Controls */}
-                {isWaitingForInteraction ? (
-                    <TouchableOpacity
-                        style={[styles.resumeButton, { backgroundColor: colors.highlightBorder }]}
-                        onPress={onTogglePlayPause}
-                    >
-                        <Text style={styles.resumeButtonText}>▶️ Nhấn để nghe</Text>
-                    </TouchableOpacity>
-                ) : (
-                    <CompactPlaybackControls
-                        isPlaying={isPlaying}
-                        isLoading={isLoading}
-                        hasChunks={hasChunks}
-                        onPlay={onPlay}
-                        onTogglePlayPause={onTogglePlayPause}
-                        onStop={onStop}
-                        colors={colors}
-                    />
-                )}
+                <CompactPlaybackControls
+                    isPlaying={isPlaying}
+                    isLoading={isLoading}
+                    hasChunks={hasChunks}
+                    onPlay={onPlay}
+                    onTogglePlayPause={onTogglePlayPause}
+                    onStop={onStop}
+                    colors={colors}
+                />
             </View>
 
             {/* Progress Info */}
@@ -168,18 +158,5 @@ const styles = StyleSheet.create({
         fontSize: 13,
         marginTop: 8,
         textAlign: 'center',
-    },
-    resumeButton: {
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-        minWidth: 120,
-    },
-    resumeButtonText: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 14,
     },
 });
