@@ -50,8 +50,20 @@ export function LibraryModal({
                     <Text style={{ fontSize: 24 }}>📖</Text>
                 </View>
                 <View style={styles.bookInfo}>
-                    <Text style={[styles.bookTitle, { color: colors.text }]} numberOfLines={2}>
-                        {item.title || item.id}
+                    <View style={styles.titleRow}>
+                        <Text style={[styles.bookStoryTitle, { color: colors.text }]} numberOfLines={1}>
+                            {item.storyTitle || item.title || item.id}
+                        </Text>
+                        {item.provider && (
+                            <View style={[styles.providerBadge, { backgroundColor: colors.inputBackground }]}>
+                                <Text style={[styles.providerText, { color: colors.textSecondary }]}>
+                                    {item.provider}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                    <Text style={[styles.bookChapterTitle, { color: colors.textSecondary }]} numberOfLines={1}>
+                        {item.title}
                     </Text>
                     <Text style={[styles.bookMeta, { color: colors.textSecondary }]}>
                         {new Date(item.lastReadTimestamp).toLocaleDateString()} • {item.progressPercent}%
@@ -78,72 +90,93 @@ export function LibraryModal({
 
     return (
         <Modal
-            animationType="slide"
+            animationType="fade"
             transparent={true}
             visible={visible}
             onRequestClose={onClose}
         >
-            <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
-                {/* Header */}
-                <View style={[styles.header, { borderBottomColor: colors.border }]}>
-                    <Text style={[styles.headerTitle, { color: colors.text }]}>Tủ Sách</Text>
-                    <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                        <Text style={[styles.closeText, { color: colors.primary }]}>Đóng</Text>
-                    </TouchableOpacity>
-                </View>
+            <View style={styles.overlay}>
+                <View style={[styles.modalContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                    {/* Header */}
+                    <View style={[styles.header, { borderBottomColor: colors.border }]}>
+                        <Text style={[styles.headerTitle, { color: colors.text }]}>Tủ Sách</Text>
+                        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                            <Text style={[styles.closeText, { color: colors.primary }]}>Đóng</Text>
+                        </TouchableOpacity>
+                    </View>
 
-                {/* Tabs */}
-                <View style={styles.tabContainer}>
-                    <TouchableOpacity
-                        style={[
-                            styles.tab,
-                            activeTab === 'recent' && styles.activeTab,
-                            activeTab === 'recent' && { borderBottomColor: colors.primary }
-                        ]}
-                        onPress={() => setActiveTab('recent')}
-                    >
-                        <Text style={[
-                            styles.tabText,
-                            { color: activeTab === 'recent' ? colors.primary : colors.textSecondary }
-                        ]}>Gần đây</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[
-                            styles.tab,
-                            activeTab === 'favorites' && styles.activeTab,
-                            activeTab === 'favorites' && { borderBottomColor: colors.primary }
-                        ]}
-                        onPress={() => setActiveTab('favorites')}
-                    >
-                        <Text style={[
-                            styles.tabText,
-                            { color: activeTab === 'favorites' ? colors.primary : colors.textSecondary }
-                        ]}>Yêu thích</Text>
-                    </TouchableOpacity>
-                </View>
+                    {/* Tabs */}
+                    <View style={styles.tabContainer}>
+                        <TouchableOpacity
+                            style={[
+                                styles.tab,
+                                activeTab === 'recent' && styles.activeTab,
+                                activeTab === 'recent' && { borderBottomColor: colors.primary }
+                            ]}
+                            onPress={() => setActiveTab('recent')}
+                        >
+                            <Text style={[
+                                styles.tabText,
+                                { color: activeTab === 'recent' ? colors.primary : colors.textSecondary }
+                            ]}>Gần đây</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[
+                                styles.tab,
+                                activeTab === 'favorites' && styles.activeTab,
+                                activeTab === 'favorites' && { borderBottomColor: colors.primary }
+                            ]}
+                            onPress={() => setActiveTab('favorites')}
+                        >
+                            <Text style={[
+                                styles.tabText,
+                                { color: activeTab === 'favorites' ? colors.primary : colors.textSecondary }
+                            ]}>Yêu thích</Text>
+                        </TouchableOpacity>
+                    </View>
 
-                {/* List */}
-                <FlatList
-                    data={data}
-                    renderItem={renderItem}
-                    keyExtractor={item => item.id}
-                    contentContainerStyle={styles.listContent}
-                    ListEmptyComponent={
-                        <View style={styles.emptyContainer}>
-                            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                                {activeTab === 'recent' ? 'Chưa có lịch sử đọc truyện' : 'Chưa có truyện yêu thích'}
-                            </Text>
-                        </View>
-                    }
-                />
-            </SafeAreaView>
+                    {/* List */}
+                    <FlatList
+                        data={data}
+                        renderItem={renderItem}
+                        keyExtractor={item => item.id}
+                        contentContainerStyle={styles.listContent}
+                        ListEmptyComponent={
+                            <View style={styles.emptyContainer}>
+                                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                                    {activeTab === 'recent' ? 'Chưa có lịch sử đọc truyện' : 'Chưa có truyện yêu thích'}
+                                </Text>
+                            </View>
+                        }
+                    />
+                </View>
+            </View>
         </Modal>
     );
 }
 
 const styles = StyleSheet.create({
-    modalContainer: {
+    overlay: {
         flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContainer: {
+        width: '90%',
+        maxWidth: 600,
+        height: '80%',
+        borderRadius: 16,
+        borderWidth: 1,
+        overflow: 'hidden', // Ensures round corners
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
     },
     header: {
         flexDirection: 'row',
@@ -157,7 +190,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     closeButton: {
-        padding: 8,
+        padding: 4,
     },
     closeText: {
         fontSize: 16,
@@ -179,7 +212,7 @@ const styles = StyleSheet.create({
         // borderBottomColor handled in style prop
     },
     tabText: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '600',
     },
     listContent: {
@@ -192,11 +225,6 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         marginBottom: 12,
         borderWidth: 1,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
     },
     bookContent: {
         flex: 1,
@@ -205,20 +233,41 @@ const styles = StyleSheet.create({
     },
     bookIcon: {
         width: 48,
-        height: 48,
+        height: 64, // Taller for book proportion
         backgroundColor: 'rgba(0,0,0,0.05)',
-        borderRadius: 8,
+        borderRadius: 4,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
     },
     bookInfo: {
         flex: 1,
+        justifyContent: 'center',
     },
-    bookTitle: {
-        fontSize: 16,
-        fontWeight: '600',
+    titleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
         marginBottom: 4,
+        flexWrap: 'wrap',
+    },
+    bookStoryTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginRight: 8,
+    },
+    bookChapterTitle: {
+        fontSize: 14,
+        marginBottom: 4,
+    },
+    providerBadge: {
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        backgroundColor: '#f0f0f0',
+    },
+    providerText: {
+        fontSize: 10,
+        fontWeight: '600',
     },
     bookMeta: {
         fontSize: 12,

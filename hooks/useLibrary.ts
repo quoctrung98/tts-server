@@ -3,7 +3,9 @@ import { storage } from '../utils/storage';
 
 export interface Book {
     id: string; // URL is the ID
-    title: string;
+    title: string; // Chapter Title
+    storyTitle?: string; // Novel/Story Title
+    provider?: string; // Source domain
     coverUrl?: string;
     lastChapterUrl: string;
     lastChapterTitle: string;
@@ -18,7 +20,7 @@ export interface UseLibraryReturn {
     recentBooks: Book[];
     favoriteBooks: Book[];
     isLoading: boolean;
-    updateProgress: (url: string, title: string, chunkIndex: number, totalChunks: number) => Promise<void>;
+    updateProgress: (url: string, title: string, chunkIndex: number, totalChunks: number, storyTitle?: string) => Promise<void>;
     toggleFavorite: (url: string) => Promise<void>;
     removeBook: (url: string) => Promise<void>;
 }
@@ -53,7 +55,8 @@ export function useLibrary(): UseLibraryReturn {
         url: string,
         title: string,
         chunkIndex: number,
-        totalChunks: number
+        totalChunks: number,
+        storyTitle?: string
     ) => {
         // Simple ID generation from URL (or just use URL)
         // Extract Story URL (parent) vs Chapter URL
@@ -64,6 +67,13 @@ export function useLibrary(): UseLibraryReturn {
 
         const timestamp = Date.now();
         const progressPercent = totalChunks > 0 ? Math.round(((chunkIndex + 1) / totalChunks) * 100) : 0;
+
+        let provider = '';
+        try {
+            provider = new URL(url).hostname.replace('www.', '');
+        } catch (e) {
+            provider = 'unknown';
+        }
 
         const existingBookIndex = books.findIndex(b => b.id === url);
 
@@ -79,13 +89,17 @@ export function useLibrary(): UseLibraryReturn {
                 lastReadTimestamp: timestamp,
                 progressPercent: progressPercent,
                 // Update title if it was missing or generic
-                title: title || newBooks[existingBookIndex].title
+                title: title || newBooks[existingBookIndex].title,
+                storyTitle: storyTitle || newBooks[existingBookIndex].storyTitle,
+                provider: provider || newBooks[existingBookIndex].provider
             };
         } else {
             // Add new
             const newBook: Book = {
                 id: url, // Unique ID
                 title: title,
+                storyTitle: storyTitle,
+                provider: provider,
                 lastChapterUrl: url,
                 lastChapterTitle: title,
                 lastChunkIndex: chunkIndex,

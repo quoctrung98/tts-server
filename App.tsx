@@ -101,7 +101,7 @@ export default function App() {
     if (chapter) {
       await saveProgress(targetUrl, startChunk, chapter.title);
       // Add to history
-      await library.updateProgress(targetUrl, chapter.title, startChunk, ttsPlayer.textChunks.length);
+      await library.updateProgress(targetUrl, chapter.title, startChunk, ttsPlayer.textChunks.length, chapter.novelTitle);
 
       // Auto-play after loading
       if (autoPlay) {
@@ -110,7 +110,7 @@ export default function App() {
           (index, text) => {
             saveProgress(targetUrl, index, chapter.title);
             // Update history progress
-            library.updateProgress(targetUrl, chapter.title, index, ttsPlayer.textChunks.length);
+            library.updateProgress(targetUrl, chapter.title, index, ttsPlayer.textChunks.length, chapter.novelTitle);
           },
           async () => {
             if (settings.autoNextChapter && chapter.nextChapterUrl) {
@@ -145,7 +145,7 @@ export default function App() {
       (index, text) => {
         saveProgress(chapterUrl, index, chapterContent.title);
         // Update history progress
-        library.updateProgress(chapterUrl, chapterContent.title, index, ttsPlayer.textChunks.length);
+        library.updateProgress(chapterUrl, chapterContent.title, index, ttsPlayer.textChunks.length, chapterContent.novelTitle);
       },
       // onComplete callback
       async () => {
@@ -191,7 +191,7 @@ export default function App() {
         (index, text) => {
           saveProgress(url, index, chapter.title);
           // Update history progress
-          library.updateProgress(url, chapter.title, index, ttsPlayer.textChunks.length);
+          library.updateProgress(url, chapter.title, index, ttsPlayer.textChunks.length, chapter.novelTitle);
         },
         // onComplete callback
         async () => {
