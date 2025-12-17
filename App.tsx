@@ -220,8 +220,8 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {(!settings.enablePitchBlack || !isDarkMode) && (
+    <SafeAreaView style={[styles.container, { backgroundColor: (settings.enablePitchBlack ? '#313131' : colors.background) }]}>
+      {(!settings.enablePitchBlack) && (
         <Image
           source={backgroundImage}
           style={StyleSheet.absoluteFillObject}
