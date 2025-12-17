@@ -10,6 +10,8 @@ import {
   ScrollView,
 } from 'react-native';
 
+import { ThemeColors } from '../hooks/useDarkMode';
+
 export interface TTSSettings {
   voice: 'male' | 'female';
   voiceName: string;
@@ -25,6 +27,7 @@ interface SettingsModalProps {
   onClose: () => void;
   settings: TTSSettings;
   onSave: (settings: TTSSettings) => void;
+  colors: ThemeColors;
 }
 
 const VOICE_OPTIONS = {
@@ -38,7 +41,7 @@ const VOICE_OPTIONS = {
   },
 };
 
-export default function SettingsModal({ visible, onClose, settings, onSave }: SettingsModalProps) {
+export default function SettingsModal({ visible, onClose, settings, onSave, colors }: SettingsModalProps) {
   const [localSettings, setLocalSettings] = useState<TTSSettings>(settings);
 
   useEffect(() => {
@@ -66,11 +69,11 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.modal}>
+        <View style={[styles.modal, { backgroundColor: colors.cardBackground }]}>
           {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.title}>⚙️ Cài đặt</Text>
-            <Text style={styles.subtitle}>
+          <View style={[styles.header, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.title, { color: colors.sectionTitle }]}>⚙️ Cài đặt</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
               Tùy chỉnh trải nghiệm nghe của bạn bằng cách điều chỉnh giọng nói, tốc độ, cao độ và âm lượng.
             </Text>
           </View>
@@ -79,14 +82,15 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
           <ScrollView style={styles.content} showsVerticalScrollIndicator={true}>
             {/* Voice Selection */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🎤 Giọng nói</Text>
-              <Text style={styles.sectionSubtitle}>Chọn giọng nói tiếng Việt</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>🎤 Giọng nói</Text>
+              <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>Chọn giọng nói tiếng Việt</Text>
 
               <View style={styles.voiceOptions}>
                 <TouchableOpacity
                   style={[
                     styles.voiceOption,
-                    localSettings.voice === 'female' && styles.voiceOptionSelected,
+                    { backgroundColor: colors.inputBackground, borderColor: colors.border },
+                    localSettings.voice === 'female' && { borderColor: colors.primary, backgroundColor: colors.primary + '10' },
                   ]}
                   onPress={() => {
                     updateSetting('voice', 'female');
@@ -95,19 +99,21 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
                 >
                   <Text style={[
                     styles.voiceOptionText,
-                    localSettings.voice === 'female' && styles.voiceOptionTextSelected,
+                    { color: colors.text },
+                    localSettings.voice === 'female' && { color: colors.primary, fontWeight: 'bold' },
                   ]}>
                     👩 {VOICE_OPTIONS.female.label}
                   </Text>
                   {localSettings.voice === 'female' && (
-                    <Text style={styles.checkmark}>✓</Text>
+                    <Text style={[styles.checkmark, { color: colors.primary }]}>✓</Text>
                   )}
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={[
                     styles.voiceOption,
-                    localSettings.voice === 'male' && styles.voiceOptionSelected,
+                    { backgroundColor: colors.inputBackground, borderColor: colors.border },
+                    localSettings.voice === 'male' && { borderColor: colors.primary, backgroundColor: colors.primary + '10' },
                   ]}
                   onPress={() => {
                     updateSetting('voice', 'male');
@@ -116,12 +122,13 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
                 >
                   <Text style={[
                     styles.voiceOptionText,
-                    localSettings.voice === 'male' && styles.voiceOptionTextSelected,
+                    { color: colors.text },
+                    localSettings.voice === 'male' && { color: colors.primary, fontWeight: 'bold' },
                   ]}>
                     👨 {VOICE_OPTIONS.male.label}
                   </Text>
                   {localSettings.voice === 'male' && (
-                    <Text style={styles.checkmark}>✓</Text>
+                    <Text style={[styles.checkmark, { color: colors.primary }]}>✓</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -130,10 +137,10 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
             {/* Speed Control */}
             <View style={styles.section}>
               <View style={styles.sliderHeader}>
-                <Text style={styles.sectionTitle}>⚡ Tốc độ phát</Text>
-                <Text style={styles.sliderValue}>{formatSpeed(localSettings.speed)}</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>⚡ Tốc độ phát</Text>
+                <Text style={[styles.sliderValue, { color: colors.primary }]}>{formatSpeed(localSettings.speed)}</Text>
               </View>
-              <Text style={styles.sectionSubtitle}>
+              <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
                 Điều chỉnh tốc độ phát từ 0.5x (chậm) đến 2.0x (nhanh)
               </Text>
 
@@ -145,24 +152,24 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
                   step="0.1"
                   value={localSettings.speed}
                   onChange={(e) => updateSetting('speed', parseFloat(e.target.value))}
-                  style={sliderStyle}
+                  style={{ ...sliderStyle, background: `linear-gradient(to right, ${colors.primary}, ${colors.primary}80)` }}
                 />
               </View>
 
               <View style={styles.sliderLabels}>
-                <Text style={styles.sliderLabel}>0.5x</Text>
-                <Text style={styles.sliderLabel}>1.0x</Text>
-                <Text style={styles.sliderLabel}>2.0x</Text>
+                <Text style={[styles.sliderLabel, { color: colors.textSecondary }]}>0.5x</Text>
+                <Text style={[styles.sliderLabel, { color: colors.textSecondary }]}>1.0x</Text>
+                <Text style={[styles.sliderLabel, { color: colors.textSecondary }]}>2.0x</Text>
               </View>
             </View>
 
             {/* Pitch Control */}
             <View style={styles.section}>
               <View style={styles.sliderHeader}>
-                <Text style={styles.sectionTitle}>🎵 Cao độ</Text>
-                <Text style={styles.sliderValue}>{formatPitch(localSettings.pitch)}</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>🎵 Cao độ</Text>
+                <Text style={[styles.sliderValue, { color: colors.primary }]}>{formatPitch(localSettings.pitch)}</Text>
               </View>
-              <Text style={styles.sectionSubtitle}>
+              <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
                 Điều chỉnh cao độ giọng nói từ -10 Hz (thấp hơn) đến +10 Hz (cao hơn)
               </Text>
 
@@ -174,24 +181,24 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
                   step="1"
                   value={localSettings.pitch}
                   onChange={(e) => updateSetting('pitch', parseInt(e.target.value))}
-                  style={sliderStyle}
+                  style={{ ...sliderStyle, background: `linear-gradient(to right, ${colors.primary}, ${colors.primary}80)` }}
                 />
               </View>
 
               <View style={styles.sliderLabels}>
-                <Text style={styles.sliderLabel}>-10 Hz</Text>
-                <Text style={styles.sliderLabel}>0 Hz</Text>
-                <Text style={styles.sliderLabel}>+10 Hz</Text>
+                <Text style={[styles.sliderLabel, { color: colors.textSecondary }]}>-10 Hz</Text>
+                <Text style={[styles.sliderLabel, { color: colors.textSecondary }]}>0 Hz</Text>
+                <Text style={[styles.sliderLabel, { color: colors.textSecondary }]}>+10 Hz</Text>
               </View>
             </View>
 
             {/* Volume Control */}
             <View style={styles.section}>
               <View style={styles.sliderHeader}>
-                <Text style={styles.sectionTitle}>🔊 Âm lượng</Text>
-                <Text style={styles.sliderValue}>{formatVolume(localSettings.volume)}</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>🔊 Âm lượng</Text>
+                <Text style={[styles.sliderValue, { color: colors.primary }]}>{formatVolume(localSettings.volume)}</Text>
               </View>
-              <Text style={styles.sectionSubtitle}>
+              <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
                 Điều chỉnh âm lượng từ 0% (tắt tiếng) đến 100% (tối đa)
               </Text>
 
@@ -203,14 +210,14 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
                   step="0.01"
                   value={localSettings.volume}
                   onChange={(e) => updateSetting('volume', parseFloat(e.target.value))}
-                  style={sliderStyle}
+                  style={{ ...sliderStyle, background: `linear-gradient(to right, ${colors.primary}, ${colors.primary}80)` }}
                 />
               </View>
 
               <View style={styles.sliderLabels}>
-                <Text style={styles.sliderLabel}>0%</Text>
-                <Text style={styles.sliderLabel}>50%</Text>
-                <Text style={styles.sliderLabel}>100%</Text>
+                <Text style={[styles.sliderLabel, { color: colors.textSecondary }]}>0%</Text>
+                <Text style={[styles.sliderLabel, { color: colors.textSecondary }]}>50%</Text>
+                <Text style={[styles.sliderLabel, { color: colors.textSecondary }]}>100%</Text>
               </View>
             </View>
 
@@ -218,8 +225,8 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
             <View style={styles.section}>
               <View style={styles.toggleRow}>
                 <View style={styles.toggleLeft}>
-                  <Text style={styles.sectionTitle}>🔄 Tự động phát chương tiếp theo</Text>
-                  <Text style={styles.sectionSubtitle}>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>🔄 Tự động phát chương tiếp theo</Text>
+                  <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
                     Tự động chuyển và phát chương tiếp theo khi chương hiện tại kết thúc
                   </Text>
                 </View>
@@ -232,6 +239,7 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
                       width: 44,
                       height: 24,
                       cursor: 'pointer',
+                      accentColor: colors.primary,
                     }}
                   />
                 </View>
@@ -242,8 +250,8 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
             <View style={styles.section}>
               <View style={styles.toggleRow}>
                 <View style={styles.toggleLeft}>
-                  <Text style={styles.sectionTitle}>🖤 Nền đen hoàn toàn (Pitch Black)</Text>
-                  <Text style={styles.sectionSubtitle}>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>🖤 Nền đen hoàn toàn (Pitch Black)</Text>
+                  <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
                     Sử dụng nền đen tuyệt đối, tiết kiệm pin cho màn hình OLED (chỉ hiển thị tốt khi bật chế độ tối)
                   </Text>
                 </View>
@@ -256,6 +264,7 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
                       width: 44,
                       height: 24,
                       cursor: 'pointer',
+                      accentColor: colors.primary,
                     }}
                   />
                 </View>
@@ -264,12 +273,18 @@ export default function SettingsModal({ visible, onClose, settings, onSave }: Se
           </ScrollView>
 
           {/* Footer */}
-          <View style={styles.footer}>
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-              <Text style={styles.cancelButtonText}>Hủy</Text>
+          <View style={[styles.footer, { borderTopColor: colors.border }]}>
+            <TouchableOpacity
+              style={[styles.cancelButton, { backgroundColor: colors.inputBackground }]}
+              onPress={onClose}
+            >
+              <Text style={[styles.cancelButtonText, { color: colors.text }]}>Hủy</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+            <TouchableOpacity
+              style={[styles.saveButton, { backgroundColor: colors.primary }]}
+              onPress={handleSave}
+            >
               <Text style={styles.saveButtonText}>💾 Lưu cài đặt</Text>
             </TouchableOpacity>
           </View>
@@ -297,7 +312,6 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modal: {
-    backgroundColor: 'white',
     borderRadius: 16,
     width: '100%',
     maxWidth: 600,
@@ -311,17 +325,14 @@ const styles = StyleSheet.create({
   header: {
     padding: 24,
     borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#2c3e50',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 14,
-    color: '#6c757d',
     lineHeight: 20,
   },
   content: {
@@ -336,12 +347,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2c3e50',
     marginBottom: 4,
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: '#6c757d',
     marginBottom: 12,
   },
   voiceOptions: {
@@ -353,28 +362,16 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#dee2e6',
-    backgroundColor: '#f8f9fa',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  voiceOptionSelected: {
-    borderColor: '#3498db',
-    backgroundColor: '#e3f2fd',
-  },
   voiceOptionText: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#495057',
-  },
-  voiceOptionTextSelected: {
-    color: '#3498db',
-    fontWeight: '600',
   },
   checkmark: {
     fontSize: 20,
-    color: '#3498db',
     fontWeight: 'bold',
   },
   sliderHeader: {
@@ -386,7 +383,6 @@ const styles = StyleSheet.create({
   sliderValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#3498db',
   },
   sliderContainer: {
     paddingVertical: 12,
@@ -398,7 +394,6 @@ const styles = StyleSheet.create({
   },
   sliderLabel: {
     fontSize: 12,
-    color: '#6c757d',
   },
   toggleRow: {
     flexDirection: 'row',
@@ -416,26 +411,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 24,
     borderTopWidth: 1,
-    borderTopColor: '#e9ecef',
     gap: 12,
   },
   cancelButton: {
     flex: 1,
     padding: 14,
     borderRadius: 8,
-    backgroundColor: '#e9ecef',
     alignItems: 'center',
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#495057',
   },
   saveButton: {
     flex: 2,
     padding: 14,
     borderRadius: 8,
-    backgroundColor: '#3498db',
     alignItems: 'center',
   },
   saveButtonText: {

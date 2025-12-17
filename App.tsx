@@ -287,6 +287,7 @@ export default function App() {
         onClose={() => setShowSettings(false)}
         settings={settings}
         onSave={updateSettings}
+        colors={colors}
       />
 
       {/* Library Modal */}
