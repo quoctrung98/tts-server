@@ -17,6 +17,7 @@ import {
   useReadingProgress,
   useChapterLoader,
   useTTSPlayer,
+  useLibrary,
 } from './hooks';
 
 // Components
@@ -25,6 +26,7 @@ import { ChapterUrlInput } from './components/ChapterUrlInput';
 import { ChapterContentDisplay } from './components/ChapterContentDisplay';
 import { TTSControlsSection } from './components/TTSControlsSection';
 import SettingsModal from './components/SettingsModal';
+import { LibraryModal } from './components/LibraryModal';
 
 // Config - no longer needed here as ttsPlayer handles TTS setup
 
@@ -32,9 +34,10 @@ export default function App() {
   // URL State
   const [chapterUrl, setChapterUrl] = useState('');
   const [showSettings, setShowSettings] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
 
   // Custom Hooks
-  const { isDarkMode, toggleDarkMode, colors: baseColors } = useDarkMode();
+  const { isDarkMode, theme, cycleTheme, colors: baseColors } = useDarkMode();
   const { settings, updateSettings, isLoading: isLoadingSettings } = useTTSSettings();
 
   // Apply Pitch Black mode override
@@ -59,6 +62,7 @@ export default function App() {
     setChapterContent
   } = useChapterLoader();
   const { saveProgress, loadProgress, updateUrlQuery, parseUrlQuery } = useReadingProgress();
+  const library = useLibrary();
   const ttsPlayer = useTTSPlayer(settings);
 
   // Keep screen awake while playing
@@ -96,6 +100,8 @@ export default function App() {
     const chapter = await fetchChapter(targetUrl);
     if (chapter) {
       await saveProgress(targetUrl, startChunk, chapter.title);
+      // Add to history
+      await library.updateProgress(targetUrl, chapter.title, startChunk, ttsPlayer.textChunks.length);
 
       // Auto-play after loading
       if (autoPlay) {
@@ -103,6 +109,8 @@ export default function App() {
           chapter,
           (index, text) => {
             saveProgress(targetUrl, index, chapter.title);
+            // Update history progress
+            library.updateProgress(targetUrl, chapter.title, index, ttsPlayer.textChunks.length);
           },
           async () => {
             if (settings.autoNextChapter && chapter.nextChapterUrl) {
@@ -136,6 +144,8 @@ export default function App() {
       // onChunkStart callback
       (index, text) => {
         saveProgress(chapterUrl, index, chapterContent.title);
+        // Update history progress
+        library.updateProgress(chapterUrl, chapterContent.title, index, ttsPlayer.textChunks.length);
       },
       // onComplete callback
       async () => {
@@ -180,6 +190,8 @@ export default function App() {
         // onChunkStart callback
         (index, text) => {
           saveProgress(url, index, chapter.title);
+          // Update history progress
+          library.updateProgress(url, chapter.title, index, ttsPlayer.textChunks.length);
         },
         // onComplete callback
         async () => {
@@ -219,9 +231,10 @@ export default function App() {
       <ScrollView contentContainerStyle={styles.content}>
         {/* Header */}
         <Header
-          isDarkMode={isDarkMode}
-          onToggleDarkMode={toggleDarkMode}
+          theme={theme}
+          onToggleTheme={cycleTheme}
           onOpenSettings={() => setShowSettings(true)}
+          onOpenLibrary={() => setShowLibrary(true)}
           colors={colors}
         />
 
@@ -261,6 +274,9 @@ export default function App() {
           onSeekChange={ttsPlayer.handleSeekChange}
           onSeekEnd={ttsPlayer.handleSeekEnd}
           isWaitingForInteraction={ttsPlayer.isWaitingForInteraction}
+          sleepTimerMinutes={ttsPlayer.sleepTimerMinutes}
+          timeRemaining={ttsPlayer.timeRemaining}
+          onSetSleepTimer={ttsPlayer.setSleepTimer}
           colors={colors}
         />
       </ScrollView>
@@ -271,6 +287,23 @@ export default function App() {
         onClose={() => setShowSettings(false)}
         settings={settings}
         onSave={updateSettings}
+      />
+
+      {/* Library Modal */}
+      <LibraryModal
+        visible={showLibrary}
+        onClose={() => setShowLibrary(false)}
+        recentBooks={library.recentBooks}
+        favoriteBooks={library.favoriteBooks}
+        onSelectBook={(book) => {
+          setChapterUrl(book.lastChapterUrl);
+          setShowLibrary(false);
+          // Resume reading
+          handleFetchChapter(book.lastChapterUrl, true, book.lastChunkIndex);
+        }}
+        onToggleFavorite={(book) => library.toggleFavorite(book.id)}
+        onRemoveBook={(book) => library.removeBook(book.id)}
+        colors={colors}
       />
     </SafeAreaView>
   );

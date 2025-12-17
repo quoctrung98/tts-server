@@ -28,6 +28,11 @@ interface TTSControlsSectionProps {
 
     // Theme
     colors: ThemeColors;
+
+    // Sleep Timer
+    sleepTimerMinutes: number | null;
+    timeRemaining: number | null;
+    onSetSleepTimer: (minutes: number | null) => void;
 }
 
 export function TTSControlsSection({
@@ -46,9 +51,26 @@ export function TTSControlsSection({
     onSeekEnd,
     isWaitingForInteraction = false,
     colors,
+    sleepTimerMinutes,
+    timeRemaining,
+    onSetSleepTimer,
 }: TTSControlsSectionProps) {
     const hasChunks = textChunks.length > 0;
     const isDisabled = !isPlaying && currentChunkIndex === -1;
+
+    const cycleTimer = () => {
+        if (sleepTimerMinutes === null) onSetSleepTimer(15);
+        else if (sleepTimerMinutes === 15) onSetSleepTimer(30);
+        else if (sleepTimerMinutes === 30) onSetSleepTimer(60);
+        else onSetSleepTimer(null);
+    };
+
+    // Format seconds to mm:ss
+    const formatTime = (seconds: number) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m}:${s < 10 ? '0' : ''}${s}`;
+    };
 
     return (
         <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
@@ -85,7 +107,10 @@ export function TTSControlsSection({
                         />
                     </View>
                 )}
+            </View>
 
+            {/* Bottom Row: Controls + Timer */}
+            <View style={styles.bottomRow}>
                 <CompactPlaybackControls
                     isPlaying={isPlaying}
                     isLoading={isLoading}
@@ -95,6 +120,24 @@ export function TTSControlsSection({
                     onStop={onStop}
                     colors={colors}
                 />
+
+                <TouchableOpacity
+                    style={[
+                        styles.timerButton,
+                        sleepTimerMinutes !== null && styles.timerButtonActive,
+                        sleepTimerMinutes !== null && { backgroundColor: colors.primary + '20' }
+                    ]}
+                    onPress={cycleTimer}
+                >
+                    <Text style={[
+                        styles.timerText,
+                        { color: sleepTimerMinutes !== null ? colors.primary : colors.textSecondary }
+                    ]}>
+                        {sleepTimerMinutes !== null && timeRemaining !== null
+                            ? `${formatTime(timeRemaining)}`
+                            : '⏱️ Hẹn giờ'}
+                    </Text>
+                </TouchableOpacity>
             </View>
 
             {/* Progress Info */}
@@ -135,6 +178,28 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
+        marginBottom: 16,
+    },
+    bottomRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+    },
+    timerButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: 'rgba(0,0,0,0.05)',
+    },
+    timerButtonActive: {
+        // bg color handled inline
+    },
+    timerText: {
+        fontSize: 14,
+        fontWeight: '600',
     },
     sliderContainer: {
         flex: 1,
@@ -144,7 +209,10 @@ const styles = StyleSheet.create({
     progressInfo: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginTop: 8,
+        marginTop: 12,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0,0,0,0.05)',
     },
     progressText: {
         fontSize: 12,

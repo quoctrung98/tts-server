@@ -1,5 +1,5 @@
 // useTTSPlayer - TTS playback control hook
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
 import { TTSQueueManager } from '../services/TTSQueueManager';
 import { splitIntoSentences, groupSentencesIntoChunks } from '../utils/textUtils';
@@ -27,6 +27,11 @@ export interface UseTTSPlayerReturn {
     handleSeekStart: () => void;
     handleSeekChange: (value: number) => void;
     handleSeekEnd: (value: number) => Promise<void>;
+
+    // Sleep Timer
+    sleepTimerMinutes: number | null;
+    timeRemaining: number | null;
+    setSleepTimer: (minutes: number | null) => void;
 
     // Reset
     reset: () => void;
@@ -152,7 +157,32 @@ export function useTTSPlayer(settings: TTSSettings): UseTTSPlayerReturn {
         }
     }, [isPlaying]);
 
-    // Stop playback
+    // Sleep Timer state
+    const [sleepTimerMinutes, setSleepTimerMinutes] = useState<number | null>(null);
+    const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Set Sleep Timer
+    const setSleepTimer = useCallback((minutes: number | null) => {
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
+
+        setSleepTimerMinutes(minutes);
+
+        if (minutes !== null) {
+            setTimeRemaining(minutes * 60);
+        } else {
+            setTimeRemaining(null);
+        }
+    }, []);
+
+    // Helper refs for stop callback
+    // We cannot easily move stop() before useEffect because it depends on refs inside the component
+    // But we can use a ref for the stop function itself if needed, or simply useCallback hoisting (which is not how JS works with const)
+    // Actually, simple fix: Move stop definition ABOVE useEffect.
+
     const stop = useCallback(async () => {
         if (ttsManagerRef.current) {
             await ttsManagerRef.current.stop();
@@ -160,8 +190,32 @@ export function useTTSPlayer(settings: TTSSettings): UseTTSPlayerReturn {
             setCurrentChunkIndex(-1);
             setReadingProgress(0);
             setSeekValue(0);
+            setSleepTimer(null);
         }
-    }, []);
+    }, [setSleepTimer]);
+
+    // Timer countdown effect
+    useEffect(() => {
+        if (sleepTimerMinutes !== null && isPlaying) {
+            timerRef.current = setInterval(() => {
+                setTimeRemaining(prev => {
+                    if (prev === null) return null;
+                    if (prev <= 1) {
+                        // Time's up
+                        stop();
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        }
+
+        return () => {
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+            }
+        };
+    }, [sleepTimerMinutes, isPlaying, stop]); // Removed setSleepTimer dependency to avoid cycle if it changes frequently (it shouldn't)
 
     // Seek controls
     const handleSeekStart = useCallback(() => {
@@ -202,6 +256,8 @@ export function useTTSPlayer(settings: TTSSettings): UseTTSPlayerReturn {
         seekValue,
         isSeeking,
         isWaitingForInteraction,
+        sleepTimerMinutes,
+        timeRemaining,
         startPlaying,
         togglePlayPause,
         stop,
@@ -209,5 +265,6 @@ export function useTTSPlayer(settings: TTSSettings): UseTTSPlayerReturn {
         handleSeekChange,
         handleSeekEnd,
         reset,
+        setSleepTimer,
     };
 }

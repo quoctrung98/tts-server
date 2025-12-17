@@ -20,7 +20,7 @@ export function useChapterLoader(): UseChapterLoaderReturn {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchChapter = useCallback(async (url: string): Promise<ChapterContent | null> => {
+    const fetchChapter = useCallback(async (url: string, forceRefresh: boolean = false): Promise<ChapterContent | null> => {
         if (!url.trim()) {
             Alert.alert('Lỗi', 'Vui lòng nhập URL chương truyện');
             return null;
@@ -30,8 +30,24 @@ export function useChapterLoader(): UseChapterLoaderReturn {
         setChapterContent(null);
         setError(null);
 
+        // Cache Logic
+        const cacheKey = `chapter_cache_${url}`;
+
         try {
-            // Import ProviderFactory dynamically
+            // 1. Try Cache first
+            if (!forceRefresh) {
+                // Import storage dynamically? No, utility is static.
+                const { storage } = await import('../utils/storage');
+                const cached = await storage.load<ChapterContent | null>(cacheKey, null);
+                if (cached) {
+                    console.log('Loaded from cache:', url);
+                    setChapterContent(cached);
+                    setIsLoading(false);
+                    return cached;
+                }
+            }
+
+            // 2. Network Fetch
             const { ProviderFactory } = await import('../providers/ProviderFactory');
 
             // Get appropriate provider for this URL
@@ -47,6 +63,10 @@ export function useChapterLoader(): UseChapterLoaderReturn {
             // Fetch chapter content using the provider
             const chapter = await provider.fetchChapter(url);
             setChapterContent(chapter);
+
+            // 3. Save to Cache
+            const { storage } = await import('../utils/storage');
+            await storage.save(cacheKey, chapter);
 
             Alert.alert('Thành công', `Đã tải chương: ${chapter.title}`);
             return chapter;

@@ -1,16 +1,44 @@
 // Header - App header with dark mode toggle and settings button
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { ThemeColors } from '../hooks';
+import { ThemeColors, ThemeMode } from '../hooks/useDarkMode';
 
 interface HeaderProps {
-    isDarkMode: boolean;
-    onToggleDarkMode: () => void;
+    theme: ThemeMode;
+    onToggleTheme: () => void;
     onOpenSettings: () => void;
+    onOpenLibrary: () => void;
     colors: ThemeColors;
 }
 
-export function Header({ isDarkMode, onToggleDarkMode, onOpenSettings, colors }: HeaderProps) {
+export function Header({ theme, onToggleTheme, onOpenSettings, onOpenLibrary, colors }: HeaderProps) {
+    const getThemeIcon = () => {
+        switch (theme) {
+            case 'light': return '🍂'; // Icon for switching TO Sepia? Or current state?
+            // Usually button shows what will happen or current state? 
+            // Let's show "Current State" icon or "Next State" icon?
+            // Best: Show icon representing current state.
+            // Light: ☀️, Dark: 🌙, Sepia: 🍂
+            case 'sepia': return '🍂';
+            case 'dark': return '🌙';
+            default: return '☀️';
+        }
+    };
+
+    // Cycle: Light -> Sepia -> Dark -> Light
+    // If current is Light, button shows 🍂 (next is Sepia)
+    // If current is Sepia, button shows 🌙 (next is Dark)
+    // If current is Dark, button shows ☀️ (next is Light)
+
+    const getNextThemeIcon = () => {
+        switch (theme) {
+            case 'light': return '🍂';
+            case 'sepia': return '🌙';
+            case 'dark': return '☀️';
+            default: return '🍂';
+        }
+    };
+
     return (
         <View style={styles.headerContainer}>
             <View style={styles.headerTextContainer}>
@@ -20,15 +48,21 @@ export function Header({ isDarkMode, onToggleDarkMode, onOpenSettings, colors }:
             <View style={styles.headerButtons}>
                 <TouchableOpacity
                     style={[styles.headerButton, { backgroundColor: colors.cardBackground }]}
+                    onPress={onOpenLibrary}
+                >
+                    <Text style={styles.headerIcon}>📚</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.headerButton, { backgroundColor: colors.cardBackground }]}
                     onPress={onOpenSettings}
                 >
                     <Text style={styles.headerIcon}>⚙️</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={[styles.headerButton, { backgroundColor: colors.cardBackground }]}
-                    onPress={onToggleDarkMode}
+                    onPress={onToggleTheme}
                 >
-                    <Text style={styles.headerIcon}>{isDarkMode ? '☀️' : '🌙'}</Text>
+                    <Text style={styles.headerIcon}>{getNextThemeIcon()}</Text>
                 </TouchableOpacity>
             </View>
         </View>
