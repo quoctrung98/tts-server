@@ -19,38 +19,21 @@ export class MeTruyenChuProvider implements IChapterProvider {
 
         try {
             let html: string;
+            const { TTS_SERVER_URL } = await import('../config');
+            const proxyResponse = await fetch(`${TTS_SERVER_URL}/proxy-html`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ url }),
+            });
 
-            // Try direct fetch first
-            try {
-                const response = await fetch(url, {
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                    },
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                html = await response.text();
-            } catch (directFetchError: any) {
-                // Fallback to proxy
-                const { TTS_SERVER_URL } = await import('../config');
-                const proxyResponse = await fetch(`${TTS_SERVER_URL}/proxy-html`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ url }),
-                });
-
-                if (!proxyResponse.ok) {
-                    throw new Error('Proxy request failed');
-                }
-
-                const proxyData = await proxyResponse.json();
-                html = proxyData.html;
+            if (!proxyResponse.ok) {
+                throw new Error('Proxy request failed');
             }
+
+            const proxyData = await proxyResponse.json();
+            html = proxyData.html;
 
             // Extract content using regex
             const titleMatch = html.match(/<h2[^>]*class="[^"]*current-chapter[^"]*"[^>]*>\s*<a[^>]*>(.*?)<\/a>\s*<\/h2>/is);
