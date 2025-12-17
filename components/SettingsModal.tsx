@@ -20,6 +20,7 @@ export interface TTSSettings {
   volume: number;
   autoNextChapter: boolean;
   enablePitchBlack?: boolean;
+  wallpaperInterval?: number; // 0 for off, or minutes
 }
 
 interface SettingsModalProps {
@@ -246,6 +247,41 @@ export default function SettingsModal({ visible, onClose, settings, onSave, colo
               </View>
             </View>
 
+            {/* Wallpaper Interval */}
+            <View style={styles.section}>
+              <View style={styles.sliderHeader}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>🖼️ Tự động đổi hình nền</Text>
+                <Text style={[styles.sliderValue, { color: colors.primary }]}>
+                  {localSettings.wallpaperInterval ? `${localSettings.wallpaperInterval} phút` : 'Tắt'}
+                </Text>
+              </View>
+              <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
+                Tự động thay đổi hình nền sau một khoảng thời gian
+              </Text>
+
+              <View style={styles.intervalOptions}>
+                {[0, 1, 5, 15, 30, 60].map((interval) => (
+                  <TouchableOpacity
+                    key={interval}
+                    style={[
+                      styles.intervalButton,
+                      { borderColor: colors.border, backgroundColor: colors.inputBackground },
+                      (localSettings.wallpaperInterval || 0) === interval && { backgroundColor: colors.primary, borderColor: colors.primary }
+                    ]}
+                    onPress={() => updateSetting('wallpaperInterval', interval)}
+                  >
+                    <Text style={[
+                      styles.intervalText,
+                      { color: colors.text },
+                      (localSettings.wallpaperInterval || 0) === interval && { color: 'white', fontWeight: 'bold' }
+                    ]}>
+                      {interval === 0 ? 'Tắt' : `${interval}p`}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
             {/* Pitch Black Mode Toggle */}
             <View style={styles.section}>
               <View style={styles.toggleRow}>
@@ -433,6 +469,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: 'white',
+  },
+  intervalOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  intervalButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    minWidth: 48,
+    alignItems: 'center',
+  },
+  intervalText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

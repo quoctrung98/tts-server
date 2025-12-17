@@ -7,6 +7,7 @@ import {
   Image,
   Platform,
   Alert,
+  View,
 } from 'react-native';
 
 // Hooks
@@ -214,99 +215,121 @@ export default function App() {
     }
   }, [settings, saveProgress, updateUrlQuery, setChapterContent, ttsPlayer]);
 
-  // Background image
-  const backgroundImage = {
-    uri: 'https://spcdn.shortpixel.ai/spio/ret_img,q_orig,to_auto,s_webp:avif/https://goldpenguin.org/wp-content/uploads/2024/02/Midjourney-Image-29.png',
-  };
+  // Wallpapers
+  const WALLPAPERS = React.useMemo(() => [
+    require('./assets/wallpapers/0.jpg'),
+    require('./assets/wallpapers/1.jpg'),
+    require('./assets/wallpapers/2.jpg'),
+    require('./assets/wallpapers/3.jpg'),
+  ], []);
+
+  const [currentWallpaperIndex, setCurrentWallpaperIndex] = useState(0);
+
+  // Wallpaper rotation effect
+  useEffect(() => {
+    if (!settings.wallpaperInterval || settings.wallpaperInterval <= 0) return;
+
+    // Initial change if needed? No, keep current.
+
+    const intervalMs = settings.wallpaperInterval * 60 * 1000;
+    const intervalId = setInterval(() => {
+      setCurrentWallpaperIndex(prev => (prev + 1) % WALLPAPERS.length);
+    }, intervalMs);
+
+    return () => clearInterval(intervalId);
+  }, [settings.wallpaperInterval, WALLPAPERS.length]);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: (settings.enablePitchBlack ? '#313131' : colors.background) }]}>
+    <View style={[styles.container, { backgroundColor: (settings.enablePitchBlack ? '#313131' : colors.background) }]}>
       {(!settings.enablePitchBlack) && (
         <Image
-          source={backgroundImage}
-          style={StyleSheet.absoluteFillObject}
+          source={WALLPAPERS[currentWallpaperIndex]}
+          style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
           resizeMode="cover"
         />
       )}
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* Header */}
-        <Header
-          theme={theme}
-          onToggleTheme={cycleTheme}
-          onOpenSettings={() => setShowSettings(true)}
-          onOpenLibrary={() => setShowLibrary(true)}
-          colors={colors}
-        />
 
-        {/* URL Input Section */}
-        <ChapterUrlInput
-          chapterUrl={chapterUrl}
-          onChangeUrl={setChapterUrl}
-          onFetch={() => handleFetchChapter()}
-          isLoading={isLoadingChapter}
-          colors={colors}
-        />
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView contentContainerStyle={styles.content}>
+          {/* Header */}
+          <Header
+            theme={theme}
+            onToggleTheme={cycleTheme}
+            onOpenSettings={() => setShowSettings(true)}
+            onOpenLibrary={() => setShowLibrary(true)}
+            colors={colors}
+          />
 
-        {/* Chapter Content Display */}
-        {chapterContent && (
-          <ChapterContentDisplay
-            content={chapterContent}
+          {/* URL Input Section */}
+          <ChapterUrlInput
+            chapterUrl={chapterUrl}
+            onChangeUrl={setChapterUrl}
+            onFetch={() => handleFetchChapter()}
+            isLoading={isLoadingChapter}
+            colors={colors}
+          />
+
+          {/* Chapter Content Display */}
+          {chapterContent && (
+            <ChapterContentDisplay
+              content={chapterContent}
+              textChunks={ttsPlayer.textChunks}
+              currentChunkIndex={ttsPlayer.currentChunkIndex}
+              colors={colors}
+              autoNextChapter={settings.autoNextChapter}
+            />
+          )}
+
+          {/* TTS Controls Section */}
+          <TTSControlsSection
+            settings={settings}
+            isPlaying={ttsPlayer.isPlaying}
+            isLoading={ttsPlayer.isLoading}
             textChunks={ttsPlayer.textChunks}
             currentChunkIndex={ttsPlayer.currentChunkIndex}
+            readingProgress={ttsPlayer.readingProgress}
+            seekValue={ttsPlayer.seekValue}
+            onPlay={handlePlay}
+            onTogglePlayPause={ttsPlayer.togglePlayPause}
+            onStop={ttsPlayer.stop}
+            onSeekStart={ttsPlayer.handleSeekStart}
+            onSeekChange={ttsPlayer.handleSeekChange}
+            onSeekEnd={ttsPlayer.handleSeekEnd}
+            isWaitingForInteraction={ttsPlayer.isWaitingForInteraction}
+            sleepTimerMinutes={ttsPlayer.sleepTimerMinutes}
+            timeRemaining={ttsPlayer.timeRemaining}
+            onSetSleepTimer={ttsPlayer.setSleepTimer}
             colors={colors}
-            autoNextChapter={settings.autoNextChapter}
           />
-        )}
+        </ScrollView>
 
-        {/* TTS Controls Section */}
-        <TTSControlsSection
+        {/* Settings Modal */}
+        <SettingsModal
+          visible={showSettings}
+          onClose={() => setShowSettings(false)}
           settings={settings}
-          isPlaying={ttsPlayer.isPlaying}
-          isLoading={ttsPlayer.isLoading}
-          textChunks={ttsPlayer.textChunks}
-          currentChunkIndex={ttsPlayer.currentChunkIndex}
-          readingProgress={ttsPlayer.readingProgress}
-          seekValue={ttsPlayer.seekValue}
-          onPlay={handlePlay}
-          onTogglePlayPause={ttsPlayer.togglePlayPause}
-          onStop={ttsPlayer.stop}
-          onSeekStart={ttsPlayer.handleSeekStart}
-          onSeekChange={ttsPlayer.handleSeekChange}
-          onSeekEnd={ttsPlayer.handleSeekEnd}
-          isWaitingForInteraction={ttsPlayer.isWaitingForInteraction}
-          sleepTimerMinutes={ttsPlayer.sleepTimerMinutes}
-          timeRemaining={ttsPlayer.timeRemaining}
-          onSetSleepTimer={ttsPlayer.setSleepTimer}
+          onSave={updateSettings}
           colors={colors}
         />
-      </ScrollView>
 
-      {/* Settings Modal */}
-      <SettingsModal
-        visible={showSettings}
-        onClose={() => setShowSettings(false)}
-        settings={settings}
-        onSave={updateSettings}
-        colors={colors}
-      />
-
-      {/* Library Modal */}
-      <LibraryModal
-        visible={showLibrary}
-        onClose={() => setShowLibrary(false)}
-        recentBooks={library.recentBooks}
-        favoriteBooks={library.favoriteBooks}
-        onSelectBook={(book) => {
-          setChapterUrl(book.lastChapterUrl);
-          setShowLibrary(false);
-          // Resume reading
-          handleFetchChapter(book.lastChapterUrl, true, book.lastChunkIndex);
-        }}
-        onToggleFavorite={(book) => library.toggleFavorite(book.id)}
-        onRemoveBook={(book) => library.removeBook(book.id)}
-        colors={colors}
-      />
-    </SafeAreaView>
+        {/* Library Modal */}
+        <LibraryModal
+          visible={showLibrary}
+          onClose={() => setShowLibrary(false)}
+          recentBooks={library.recentBooks}
+          favoriteBooks={library.favoriteBooks}
+          onSelectBook={(book) => {
+            setChapterUrl(book.lastChapterUrl);
+            setShowLibrary(false);
+            // Resume reading
+            handleFetchChapter(book.lastChapterUrl, true, book.lastChunkIndex);
+          }}
+          onToggleFavorite={(book) => library.toggleFavorite(book.id)}
+          onRemoveBook={(book) => library.removeBook(book.id)}
+          colors={colors}
+        />
+      </SafeAreaView>
+    </View>
   );
 }
 
@@ -314,6 +337,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f7fa',
+    ...(Platform.OS === 'web' ? {
+      minHeight: '100vh' as any,
+      width: '100vw' as any,
+      overflow: 'hidden',
+    } : {}),
   },
   content: {
     padding: 20,
@@ -321,5 +349,8 @@ const styles = StyleSheet.create({
     maxWidth: Platform.OS === 'web' ? 900 : undefined,
     marginHorizontal: Platform.OS === 'web' ? 'auto' : 0,
     width: '100%',
+  },
+  safeArea: {
+    flex: 1,
   },
 });

@@ -11,6 +11,7 @@ const DEFAULT_SETTINGS: TTSSettings = {
     volume: 1.0,
     autoNextChapter: true,
     enablePitchBlack: false,
+    wallpaperInterval: 15, // Default 15 minutes
 };
 
 export interface UseTTSSettingsReturn {
