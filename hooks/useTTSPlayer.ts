@@ -79,7 +79,9 @@ export function useTTSPlayer(settings: TTSSettings): UseTTSPlayerReturn {
             }
 
             // Split content into chunks
-            const sentences = splitIntoSentences(content.content);
+            // Prepend title to content so it's read first
+            const fullText = `${content.title}. ${content.content}`;
+            const sentences = splitIntoSentences(fullText);
             const chunks = groupSentencesIntoChunks(sentences, 50, 300);
 
             setTextChunks(chunks);
