@@ -62,7 +62,7 @@ export default function App() {
     fetchChapter,
     setChapterContent
   } = useChapterLoader();
-  const { saveProgress, loadProgress, updateUrlQuery, parseUrlQuery } = useReadingProgress();
+  const { saveProgress, loadProgress } = useReadingProgress();
   const library = useLibrary();
   const ttsPlayer = useTTSPlayer(settings);
 
@@ -75,14 +75,7 @@ export default function App() {
       // Wait for settings to load first
       if (isLoadingSettings) return;
 
-      // Try to load chapter from URL query first
-      const { chapterUrl: url, chunkIndex: chunk } = parseUrlQuery();
-
-      if (url) {
-        setChapterUrl(url);
-        // Load chapter and seek to chunk from URL
-        handleFetchChapter(url, true, chunk);
-      } else if (settings.username) {
+      if (settings.username) {
         // Try to load from cloud if username is set
         const cloudProgress = await loadProgress();
         if (cloudProgress && cloudProgress.chapterUrl) {
@@ -137,7 +130,7 @@ export default function App() {
         );
       }
     }
-  }, [chapterUrl, fetchChapter, updateUrlQuery, saveProgress, ttsPlayer, settings]);
+  }, [chapterUrl, fetchChapter, saveProgress, ttsPlayer, settings]);
 
   // Handle play
   const handlePlay = useCallback(async () => {
@@ -185,7 +178,6 @@ export default function App() {
 
       const chapter = await provider.fetchChapter(url);
       setChapterContent(chapter);
-      updateUrlQuery(url, 0);
 
       // Small delay to ensure state is updated
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -219,7 +211,7 @@ export default function App() {
     } catch (error: any) {
       Alert.alert('Lỗi', `Không thể tự động phát chương tiếp theo: ${error.message}`);
     }
-  }, [settings, saveProgress, updateUrlQuery, setChapterContent, ttsPlayer]);
+  }, [settings, saveProgress, setChapterContent, ttsPlayer]);
 
   // Handle manual cloud load
   const handleLoadCloudProgress = useCallback(async (username?: string) => {

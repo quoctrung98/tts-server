@@ -9,8 +9,6 @@ export interface UseReadingProgressReturn {
     progress: ReadingProgress | null;
     saveProgress: (url: string, chunkIndex: number, title?: string) => void;
     loadProgress: (usernameOverride?: string) => Promise<ReadingProgress | null>;
-    updateUrlQuery: (chapterUrl: string, chunkIndex: number) => void;
-    parseUrlQuery: () => { chapterUrl: string | null; chunkIndex: number };
 }
 
 
@@ -22,35 +20,7 @@ export function useReadingProgress(): UseReadingProgressReturn {
     const { settings } = useTTSSettings();
     const { saveProgressToCloud, loadProgressFromCloud } = useCloudSync(settings.username);
 
-    // Update URL query params (for bookmarking)
-    const updateUrlQuery = useCallback((chapterUrl: string, chunkIndex: number) => {
-        if (Platform.OS === 'web' && window.history && window.history.replaceState) {
-            const url = new URL(window.location.href);
-            url.searchParams.set('chapter', chapterUrl);
-            if (chunkIndex > 0) {
-                url.searchParams.set('chunk', chunkIndex.toString());
-            } else {
-                url.searchParams.set('chunk', '0');
-            }
-            window.history.replaceState({}, '', url.toString());
-        }
-    }, []);
 
-    // Parse URL query params on load
-    const parseUrlQuery = useCallback((): { chapterUrl: string | null; chunkIndex: number } => {
-        if (Platform.OS === 'web') {
-            const urlParams = new URLSearchParams(window.location.search);
-            const chapterUrl = urlParams.get('chapter');
-            const chunkStr = urlParams.get('chunk');
-            const chunkIndex = chunkStr ? parseInt(chunkStr, 10) : 0;
-
-            return {
-                chapterUrl: chapterUrl || null,
-                chunkIndex: isNaN(chunkIndex) ? 0 : chunkIndex
-            };
-        }
-        return { chapterUrl: null, chunkIndex: 0 };
-    }, []);
 
     // Save reading progress - now just updates URL and Cloud
     const saveProgress = useCallback((
@@ -80,7 +50,7 @@ export function useReadingProgress(): UseReadingProgressReturn {
                 last_chunk_index: chunkIndex
             });
         }
-    }, [updateUrlQuery, saveProgressToCloud, settings.username]);
+    }, [saveProgressToCloud, settings.username]);
 
 
 
@@ -106,8 +76,6 @@ export function useReadingProgress(): UseReadingProgressReturn {
         progress,
         saveProgress,
         loadProgress,
-        updateUrlQuery,
-        parseUrlQuery,
     };
 }
 
