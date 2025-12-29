@@ -16,6 +16,13 @@ export const TTS_SERVER_URL =
   'https://truyenaudio.up.railway.app';
 
 /**
+ * Cloud Sync Configuration (Supabase)
+ */
+export const SUPABASE_URL = (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_SUPABASE_URL) || 'https://wdqoppgfalqagnhhxkmi.supabase.co';
+export const SUPABASE_ANON_KEY = (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_SUPABASE_ANON_KEY) || 'sb_publishable_O5GflvTod47POWWy2rGpQA_yo-kMVbZ';
+
+
+/**
  * Default TTS Settings
  */
 export const DEFAULT_TTS_SETTINGS = {

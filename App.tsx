@@ -82,9 +82,15 @@ export default function App() {
         setChapterUrl(url);
         // Load chapter and seek to chunk from URL
         handleFetchChapter(url, true, chunk);
+      } else if (settings.username) {
+        // Try to load from cloud if username is set
+        const cloudProgress = await loadProgress();
+        if (cloudProgress && cloudProgress.chapterUrl) {
+          setChapterUrl(cloudProgress.chapterUrl);
+          handleFetchChapter(cloudProgress.chapterUrl, true, cloudProgress.chunkIndex);
+        }
       }
-      // LocalStorage fallback removed as requested
-      // The app will now only resume if URL parameters are present
+
     };
 
     initApp();
@@ -215,6 +221,21 @@ export default function App() {
     }
   }, [settings, saveProgress, updateUrlQuery, setChapterContent, ttsPlayer]);
 
+  // Handle manual cloud load
+  const handleLoadCloudProgress = useCallback(async () => {
+    try {
+      const cloudProgress = await loadProgress();
+      if (cloudProgress && cloudProgress.chapterUrl) {
+        setChapterUrl(cloudProgress.chapterUrl);
+        await handleFetchChapter(cloudProgress.chapterUrl, true, cloudProgress.chunkIndex);
+      } else {
+        Alert.alert('Thông báo', 'Không tìm thấy tiến độ lưu trữ trên đám mây cho username này.');
+      }
+    } catch (error: any) {
+      Alert.alert('Lỗi', `Không thể tải tiến độ từ cloud: ${error.message}`);
+    }
+  }, [loadProgress, handleFetchChapter]);
+
   // Wallpapers
   const WALLPAPERS = React.useMemo(() => [
     require('./assets/wallpapers/0.jpg'),
@@ -229,8 +250,6 @@ export default function App() {
   useEffect(() => {
     if (!settings.wallpaperInterval || settings.wallpaperInterval <= 0) return;
 
-    // Initial change if needed? No, keep current.
-
     const intervalMs = settings.wallpaperInterval * 60 * 1000;
     const intervalId = setInterval(() => {
       setCurrentWallpaperIndex(prev => (prev + 1) % WALLPAPERS.length);
@@ -240,6 +259,7 @@ export default function App() {
   }, [settings.wallpaperInterval, WALLPAPERS.length]);
 
   return (
+
     <View style={[styles.container, { backgroundColor: (settings.enablePitchBlack ? '#313131' : colors.background) }]}>
       {(!settings.enablePitchBlack) && (
         <Image
@@ -310,7 +330,9 @@ export default function App() {
           settings={settings}
           onSave={updateSettings}
           colors={colors}
+          onCloudLoad={handleLoadCloudProgress}
         />
+
 
         {/* Library Modal */}
         <LibraryModal

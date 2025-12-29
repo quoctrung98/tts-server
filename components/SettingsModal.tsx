@@ -21,7 +21,10 @@ export interface TTSSettings {
   autoNextChapter: boolean;
   enablePitchBlack?: boolean;
   wallpaperInterval?: number; // 0 for off, or minutes
+  username?: string;
 }
+
+
 
 interface SettingsModalProps {
   visible: boolean;
@@ -29,7 +32,9 @@ interface SettingsModalProps {
   settings: TTSSettings;
   onSave: (settings: TTSSettings) => void;
   colors: ThemeColors;
+  onCloudLoad?: () => Promise<void>;
 }
+
 
 const VOICE_OPTIONS = {
   female: {
@@ -42,8 +47,9 @@ const VOICE_OPTIONS = {
   },
 };
 
-export default function SettingsModal({ visible, onClose, settings, onSave, colors }: SettingsModalProps) {
+export default function SettingsModal({ visible, onClose, settings, onSave, colors, onCloudLoad }: SettingsModalProps) {
   const [localSettings, setLocalSettings] = useState<TTSSettings>(settings);
+  const [isLoadingCloud, setIsLoadingCloud] = useState(false);
 
   useEffect(() => {
     setLocalSettings(settings);
@@ -53,6 +59,17 @@ export default function SettingsModal({ visible, onClose, settings, onSave, colo
     onSave(localSettings);
     onClose();
   };
+
+  const handleCloudLoad = async () => {
+    if (!onCloudLoad) return;
+    setIsLoadingCloud(true);
+    try {
+      await onCloudLoad();
+    } finally {
+      setIsLoadingCloud(false);
+    }
+  };
+
 
   const updateSetting = (key: keyof TTSSettings, value: any) => {
     setLocalSettings(prev => ({ ...prev, [key]: value }));
@@ -222,7 +239,52 @@ export default function SettingsModal({ visible, onClose, settings, onSave, colo
               </View>
             </View>
 
+            {/* Cloud Sync Section */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>☁️ Đồng bộ đám mây (Cloud Sync)</Text>
+              <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
+                Nhập username để lưu và đồng bộ tiến độ đọc truyện của bạn qua Supabase.
+              </Text>
+              <View style={[styles.inputContainer, { backgroundColor: colors.inputBackground, borderColor: colors.border }]}>
+                <input
+                  type="text"
+                  placeholder="Nhập username của bạn..."
+                  value={localSettings.username || ''}
+                  onChange={(e) => updateSetting('username', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: 'none',
+                    background: 'transparent',
+                    color: colors.text,
+                    fontSize: '16px',
+                    outline: 'none',
+                  }}
+                />
+              </View>
+              <TouchableOpacity
+                style={[
+                  styles.loadCloudButton,
+                  { backgroundColor: colors.primary + '20', borderColor: colors.primary },
+                  isLoadingCloud && { opacity: 0.7 }
+                ]}
+                onPress={handleCloudLoad}
+                disabled={isLoadingCloud || !localSettings.username}
+              >
+                <Text style={[styles.loadCloudButtonText, { color: colors.primary }]}>
+                  {isLoadingCloud ? '⏳ Đang tải...' : '📥 Tải tiến độ từ Cloud'}
+                </Text>
+              </TouchableOpacity>
+              {!(typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_SUPABASE_URL) && (
+                <Text style={[styles.noteText, { color: colors.warning || '#f39c12' }]}>
+                  ⚠️ Lưu ý: Bạn cần cấu hình SUPABASE_URL trong config.ts để tính năng này hoạt động.
+                </Text>
+              )}
+            </View>
+
             {/* Auto Continue Toggle */}
+
+
             <View style={styles.section}>
               <View style={styles.toggleRow}>
                 <View style={styles.toggleLeft}>
@@ -487,5 +549,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+  inputContainer: {
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 8,
+    marginBottom: 8,
+    overflow: 'hidden',
+  },
+  noteText: {
+    fontSize: 12,
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  loadCloudButton: {
+    marginTop: 8,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadCloudButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
 });
+
+
 

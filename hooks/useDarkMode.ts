@@ -19,6 +19,8 @@ export interface ThemeColors {
     shadowColor: string;
     primary: string;
     border: string;
+    warning: string;
+    success: string;
 }
 
 const LIGHT_COLORS: ThemeColors = {
@@ -36,6 +38,8 @@ const LIGHT_COLORS: ThemeColors = {
     shadowColor: '#000',
     primary: '#007bff',
     border: '#dee2e6',
+    warning: '#f39c12',
+    success: '#28a745',
 };
 
 const DARK_COLORS: ThemeColors = {
@@ -53,6 +57,8 @@ const DARK_COLORS: ThemeColors = {
     shadowColor: '#000',
     primary: '#4da3ff',
     border: '#4d4d4d',
+    warning: '#f39c12',
+    success: '#28a745',
 };
 
 const SEPIA_COLORS: ThemeColors = {
@@ -70,7 +76,10 @@ const SEPIA_COLORS: ThemeColors = {
     shadowColor: '#5b4636',
     primary: '#d35400',
     border: '#d3c9a5',
+    warning: '#d35400',
+    success: '#27ae60',
 };
+
 
 export interface UseDarkModeReturn {
     isDarkMode: boolean;

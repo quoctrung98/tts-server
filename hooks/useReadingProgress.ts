@@ -1,7 +1,9 @@
 // useReadingProgress - Reading progress tracking with persistence and URL sync
 import { useState, useCallback } from 'react';
 import { Platform } from 'react-native';
-import { storage, ReadingProgress } from '../utils/storage';
+import { ReadingProgress } from '../utils/storage';
+import { useCloudSync } from './useCloudSync';
+import { useTTSSettings } from './useTTSSettings';
 
 export interface UseReadingProgressReturn {
     progress: ReadingProgress | null;
@@ -16,6 +18,8 @@ export interface UseReadingProgressReturn {
  */
 export function useReadingProgress(): UseReadingProgressReturn {
     const [progress, setProgress] = useState<ReadingProgress | null>(null);
+    const { settings } = useTTSSettings();
+    const { saveProgressToCloud, loadProgressFromCloud } = useCloudSync(settings.username);
 
     // Update URL query params (for bookmarking)
     const updateUrlQuery = useCallback((chapterUrl: string, chunkIndex: number) => {
@@ -25,7 +29,7 @@ export function useReadingProgress(): UseReadingProgressReturn {
             if (chunkIndex > 0) {
                 url.searchParams.set('chunk', chunkIndex.toString());
             } else {
-                url.searchParams.delete('chunk');
+                url.searchParams.set('chunk', '0');
             }
             window.history.replaceState({}, '', url.toString());
         }
@@ -47,7 +51,7 @@ export function useReadingProgress(): UseReadingProgressReturn {
         return { chapterUrl: null, chunkIndex: 0 };
     }, []);
 
-    // Save reading progress - now just updates URL
+    // Save reading progress - now just updates URL and Cloud
     const saveProgress = useCallback((
         url: string,
         chunkIndex: number,
@@ -61,14 +65,39 @@ export function useReadingProgress(): UseReadingProgressReturn {
         };
 
         setProgress(newProgress);
-        // storage.save call removed as requested
-        updateUrlQuery(url, chunkIndex);
-    }, [updateUrlQuery]);
 
-    // Load reading progress - deprecated/noop for now as we use URL
+        // History pollution control: Removed as requested.
+        // Reading progress is now tracked via state and Cloud Sync (Supabase).
+        // updateUrlQuery(url, chunkIndex); 
+
+        // Cloud sync - optimize by only saving every 5 chunks or on chapter change (chunk 0)
+
+        if (settings.username && (chunkIndex === 0 || chunkIndex % 5 === 0)) {
+            saveProgressToCloud({
+                last_url: url,
+                last_chapter_title: title || '',
+                last_chunk_index: chunkIndex
+            });
+        }
+    }, [updateUrlQuery, saveProgressToCloud, settings.username]);
+
+
+
+    // Load reading progress - now supports cloud
     const loadProgress = useCallback(async (): Promise<ReadingProgress | null> => {
+        if (settings.username) {
+            const cloud = await loadProgressFromCloud();
+            if (cloud) {
+                return {
+                    chapterUrl: cloud.last_url,
+                    chapterTitle: cloud.last_chapter_title,
+                    chunkIndex: cloud.last_chunk_index,
+                    timestamp: Date.now()
+                };
+            }
+        }
         return null;
-    }, []);
+    }, [loadProgressFromCloud, settings.username]);
 
     return {
         progress,
@@ -78,3 +107,4 @@ export function useReadingProgress(): UseReadingProgressReturn {
         parseUrlQuery,
     };
 }
+
