@@ -222,9 +222,9 @@ export default function App() {
   }, [settings, saveProgress, updateUrlQuery, setChapterContent, ttsPlayer]);
 
   // Handle manual cloud load
-  const handleLoadCloudProgress = useCallback(async () => {
+  const handleLoadCloudProgress = useCallback(async (username?: string) => {
     try {
-      const cloudProgress = await loadProgress();
+      const cloudProgress = await loadProgress(username);
       if (cloudProgress && cloudProgress.chapterUrl) {
         setChapterUrl(cloudProgress.chapterUrl);
         await handleFetchChapter(cloudProgress.chapterUrl, true, cloudProgress.chunkIndex);
@@ -235,6 +235,7 @@ export default function App() {
       Alert.alert('Lỗi', `Không thể tải tiến độ từ cloud: ${error.message}`);
     }
   }, [loadProgress, handleFetchChapter]);
+
 
   // Wallpapers
   const WALLPAPERS = React.useMemo(() => [

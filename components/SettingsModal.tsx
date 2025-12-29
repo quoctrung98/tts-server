@@ -32,8 +32,9 @@ interface SettingsModalProps {
   settings: TTSSettings;
   onSave: (settings: TTSSettings) => void;
   colors: ThemeColors;
-  onCloudLoad?: () => Promise<void>;
+  onCloudLoad?: (username?: string) => Promise<void>;
 }
+
 
 
 const VOICE_OPTIONS = {
@@ -64,7 +65,7 @@ export default function SettingsModal({ visible, onClose, settings, onSave, colo
     if (!onCloudLoad) return;
     setIsLoadingCloud(true);
     try {
-      await onCloudLoad();
+      await onCloudLoad(localSettings.username);
     } finally {
       setIsLoadingCloud(false);
     }

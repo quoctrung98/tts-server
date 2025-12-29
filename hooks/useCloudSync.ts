@@ -36,15 +36,17 @@ export function useCloudSync(username?: string) {
         }
     }, [supabase, username]);
 
-    const loadProgressFromCloud = useCallback(async (): Promise<CloudProgress | null> => {
-        if (!supabase || !username) return null;
+    const loadProgressFromCloud = useCallback(async (overrideUsername?: string): Promise<CloudProgress | null> => {
+        const targetUsername = overrideUsername || username;
+        if (!supabase || !targetUsername) return null;
 
         try {
             const { data, error } = await supabase
                 .from('reading_progress')
                 .select('last_url, last_chapter_title, last_chunk_index')
-                .eq('username', username)
+                .eq('username', targetUsername)
                 .single();
+
 
             if (error) {
                 if (error.code !== 'PGRST116') { // Not found error code for single()

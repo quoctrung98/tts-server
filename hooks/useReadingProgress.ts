@@ -8,10 +8,11 @@ import { useTTSSettings } from './useTTSSettings';
 export interface UseReadingProgressReturn {
     progress: ReadingProgress | null;
     saveProgress: (url: string, chunkIndex: number, title?: string) => void;
-    loadProgress: () => Promise<ReadingProgress | null>;
+    loadProgress: (usernameOverride?: string) => Promise<ReadingProgress | null>;
     updateUrlQuery: (chapterUrl: string, chunkIndex: number) => void;
     parseUrlQuery: () => { chapterUrl: string | null; chunkIndex: number };
 }
+
 
 /**
  * Hook for managing reading progress with URL sync (localStorage removed)
@@ -84,9 +85,10 @@ export function useReadingProgress(): UseReadingProgressReturn {
 
 
     // Load reading progress - now supports cloud
-    const loadProgress = useCallback(async (): Promise<ReadingProgress | null> => {
-        if (settings.username) {
-            const cloud = await loadProgressFromCloud();
+    const loadProgress = useCallback(async (usernameOverride?: string): Promise<ReadingProgress | null> => {
+        const targetUsername = usernameOverride || settings.username;
+        if (targetUsername) {
+            const cloud = await loadProgressFromCloud(targetUsername);
             if (cloud) {
                 return {
                     chapterUrl: cloud.last_url,
@@ -98,6 +100,7 @@ export function useReadingProgress(): UseReadingProgressReturn {
         }
         return null;
     }, [loadProgressFromCloud, settings.username]);
+
 
     return {
         progress,
