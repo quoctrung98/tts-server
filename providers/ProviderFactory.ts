@@ -4,6 +4,7 @@ import { TruyenFullProvider } from './TruyenFullProvider';
 import { TangThuVienProvider } from './TangThuVienProvider';
 import { MeTruyenChuProvider } from './MeTruyenChuProvider';
 import { TruyenMoiProvider } from './TruyenMoiProvider';
+import { TruyenHdaProvider } from './TruyenHdaProvider';
 // import { TruyenDichMienPhiProvider } from './TruyenDichMienPhiProvider';
 
 export class ProviderFactory {
@@ -12,6 +13,7 @@ export class ProviderFactory {
     new TangThuVienProvider(),
     new MeTruyenChuProvider(),
     new TruyenMoiProvider(),
+    new TruyenHdaProvider(),
     // Uncomment khi đã implement:
     // new DoclnProvider(),
     // new TruyenDichMienPhiProvider(),

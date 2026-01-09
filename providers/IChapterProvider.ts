@@ -11,10 +11,10 @@ export interface ChapterContent {
 export interface IChapterProvider {
   // Check if this provider can handle the given URL
   canHandle(url: string): boolean;
-  
+
   // Fetch chapter content from the URL
   fetchChapter(url: string): Promise<ChapterContent>;
-  
+
   // Provider name for display
   getName(): string;
 }
