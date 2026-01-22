@@ -89,7 +89,13 @@ export function restoreCensoredWords(text: string): string {
     'l·ạm d·ụng': 'lạm dụng',
     'v·a c·hạm': 'va chạm',
     't·ai n·ạn': 'tai nạn',
-    '·': ''
+    '·': '',
+    'ϊếŧ': 'iết',
+    'ɭ': 'l',
+    'ŧ': 't',
+    'ƈɦ': 'ch',
+    'υ.': 'ụ',
+    '*и': 'ồn'
   };
 
   let restoredText = text;
