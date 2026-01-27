@@ -18,18 +18,18 @@ def async_route(f):
     return wrapped
 
 @app.route('/', defaults={'path': ''})
+@app.route('/api', defaults={'path': ''})
 @app.route('/<path:path>')
 def catch_all(path):
+    # This helps diagnose what path Flask is actually seeing
     return jsonify({
         "status": "debug",
-        "message": "Flask received this request but no specific route matched.",
+        "message": "Flask caught this request. Use /voices, /speak, or /proxy-html",
         "path_received": path,
-        "request_path": request.path,
-        "available_routes": ["/voices", "/speak", "/proxy-html", "/health"]
+        "request_path": request.path
     }), 200
 
 @app.route('/api/voices', methods=['GET'])
-
 @app.route('/voices', methods=['GET'])
 @async_route
 async def get_voices():
