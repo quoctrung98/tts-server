@@ -6,8 +6,20 @@
   "trailingSlash": false,
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "/api/index.py"
+      "source": "/api/voices",
+      "destination": "/api/voices.py"
+    },
+    {
+      "source": "/api/speak",
+      "destination": "/api/speak.py"
+    },
+    {
+      "source": "/api/proxy-html",
+      "destination": "/api/proxy-html.py"
+    },
+    {
+      "source": "/api/health",
+      "destination": "/api/health.py"
     }
   ]
 }
