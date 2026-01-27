@@ -17,6 +17,19 @@ def async_route(f):
         return asyncio.run(f(*args, **kwargs))
     return wrapped
 
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def catch_all(path):
+    return jsonify({
+        "status": "debug",
+        "message": "Flask received this request but no specific route matched.",
+        "path_received": path,
+        "request_path": request.path,
+        "available_routes": ["/voices", "/speak", "/proxy-html", "/health"]
+    }), 200
+
+@app.route('/api/voices', methods=['GET'])
+
 @app.route('/voices', methods=['GET'])
 @async_route
 async def get_voices():
@@ -32,6 +45,7 @@ async def get_voices():
     ]
     return jsonify(vi_voices)
 
+@app.route('/api/speak', methods=['POST'])
 @app.route('/speak', methods=['POST'])
 @async_route
 async def speak():
@@ -80,10 +94,12 @@ async def speak():
         except Exception as e:
             print(f"Cleanup warning: {e}")
 
+@app.route('/api/health', methods=['GET'])
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({'status': 'ok'})
 
+@app.route('/api/proxy-html', methods=['POST'])
 @app.route('/proxy-html', methods=['POST'])
 def proxy_html():
     """
@@ -134,12 +150,14 @@ if __name__ == '__main__':
     print("🎤 Edge-TTS Vercel API Starting...")
     print("=" * 50)
     port = int(os.environ.get('PORT', 5000))
-    print(f"📍 Local URL: http://localhost:{port}/api")
-    print("\nEndpoints (local prefix /api/):")
-    print("  GET  /voices      -> http://localhost:5000/voices")
-    print("  POST /speak       -> http://localhost:5000/speak")
-    print("  POST /proxy-html  -> http://localhost:5000/proxy-html")
+    print(f"📍 Local URL: http://localhost:{port}")
+    print("\nAvailable Endpoints (both work):")
+    print(f"  GET  /api/voices     or  /voices")
+    print(f"  POST /api/speak      or  /speak")
+    print(f"  POST /api/proxy-html or  /proxy-html")
+    print(f"  GET  /api/health     or  /health")
     print("=" * 50)
     app.run(host='0.0.0.0', port=port, debug=True)
+
 
 
