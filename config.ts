@@ -11,9 +11,7 @@
  * - Set EXPO_PUBLIC_TTS_URL in Vercel/Netlify environment variables
  * - Example: https://your-app.onrender.com
  */
-export const TTS_SERVER_URL =
-  (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_TTS_URL) ||
-  'https://truyenaudio.up.railway.app';
+export const TTS_SERVER_URL = window.location.origin + '/api';
 
 /**
  * Cloud Sync Configuration (Supabase)

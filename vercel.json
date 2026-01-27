@@ -3,6 +3,11 @@
   "outputDirectory": "dist",
   "devCommand": "npx expo start --web",
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.py"
+    }
+  ]
 }
-
