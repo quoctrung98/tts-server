@@ -10,5 +10,5 @@ export { useChapterLoader } from './useChapterLoader';
 export type { UseChapterLoaderReturn } from './useChapterLoader';
 export { useTTSPlayer } from './useTTSPlayer';
 export type { UseTTSPlayerReturn } from './useTTSPlayer';
-export { useLibrary } from './useLibrary';
-export type { UseLibraryReturn, Book } from './useLibrary';
+export { useHistory } from './useHistory';
+export type { UseHistoryReturn, HistoryItem } from './useHistory';

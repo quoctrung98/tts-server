@@ -10,48 +10,48 @@ import {
     SafeAreaView,
     Platform
 } from 'react-native';
-import { Book } from '../hooks/useLibrary';
+import { HistoryItem } from '../hooks/useHistory';
 import { ThemeColors } from '../hooks/useDarkMode';
 
-interface LibraryModalProps {
+interface HistoryModalProps {
     visible: boolean;
     onClose: () => void;
-    recentBooks: Book[];
-    favoriteBooks: Book[];
-    onSelectBook: (book: Book) => void;
-    onToggleFavorite: (book: Book) => void;
-    onRemoveBook: (book: Book) => void;
+    recentItems: HistoryItem[];
+    favoriteItems: HistoryItem[];
+    onSelectItem: (item: HistoryItem) => void;
+    onToggleFavorite: (item: HistoryItem) => void;
+    onRemoveItem: (item: HistoryItem) => void;
     colors: ThemeColors;
 }
 
 type Tab = 'recent' | 'favorites';
 
-export function LibraryModal({
+export function HistoryModal({
     visible,
     onClose,
-    recentBooks,
-    favoriteBooks,
-    onSelectBook,
+    recentItems,
+    favoriteItems,
+    onSelectItem,
     onToggleFavorite,
-    onRemoveBook,
+    onRemoveItem,
     colors
-}: LibraryModalProps) {
+}: HistoryModalProps) {
     const [activeTab, setActiveTab] = useState<Tab>('recent');
 
-    const data = activeTab === 'recent' ? recentBooks : favoriteBooks;
+    const data = activeTab === 'recent' ? recentItems : favoriteItems;
 
-    const renderItem = ({ item }: { item: Book }) => (
-        <View style={[styles.bookItem, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+    const renderItem = ({ item }: { item: HistoryItem }) => (
+        <View style={[styles.itemContainer, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
             <TouchableOpacity
-                style={styles.bookContent}
-                onPress={() => onSelectBook(item)}
+                style={styles.itemContent}
+                onPress={() => onSelectItem(item)}
             >
-                <View style={styles.bookIcon}>
-                    <Text style={{ fontSize: 24 }}>📖</Text>
+                <View style={styles.itemIcon}>
+                    <Text style={{ fontSize: 24 }}>🕒</Text>
                 </View>
-                <View style={styles.bookInfo}>
+                <View style={styles.itemInfo}>
                     <View style={styles.titleRow}>
-                        <Text style={[styles.bookStoryTitle, { color: colors.text }]} numberOfLines={1}>
+                        <Text style={[styles.storyTitle, { color: colors.text }]} numberOfLines={1}>
                             {item.storyTitle || item.title || item.id}
                         </Text>
                         {item.provider && (
@@ -62,16 +62,16 @@ export function LibraryModal({
                             </View>
                         )}
                     </View>
-                    <Text style={[styles.bookChapterTitle, { color: colors.textSecondary }]} numberOfLines={1}>
+                    <Text style={[styles.chapterTitle, { color: colors.textSecondary }]} numberOfLines={1}>
                         {item.title}
                     </Text>
-                    <Text style={[styles.bookMeta, { color: colors.textSecondary }]}>
+                    <Text style={[styles.itemMeta, { color: colors.textSecondary }]}>
                         {new Date(item.lastReadTimestamp).toLocaleDateString()} • {item.progressPercent}%
                     </Text>
                 </View>
             </TouchableOpacity>
 
-            <View style={styles.bookActions}>
+            <View style={styles.itemActions}>
                 <TouchableOpacity
                     style={styles.actionButton}
                     onPress={() => onToggleFavorite(item)}
@@ -80,7 +80,7 @@ export function LibraryModal({
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={styles.actionButton}
-                    onPress={() => onRemoveBook(item)}
+                    onPress={() => onRemoveItem(item)}
                 >
                     <Text style={{ fontSize: 20 }}>🗑️</Text>
                 </TouchableOpacity>
@@ -99,7 +99,7 @@ export function LibraryModal({
                 <View style={[styles.modalContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
                     {/* Header */}
                     <View style={[styles.header, { borderBottomColor: colors.border }]}>
-                        <Text style={[styles.headerTitle, { color: colors.text }]}>Tủ Sách</Text>
+                        <Text style={[styles.headerTitle, { color: colors.text }]}>Lịch Sử</Text>
                         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                             <Text style={[styles.closeText, { color: colors.primary }]}>Đóng</Text>
                         </TouchableOpacity>
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     listContent: {
         padding: 16,
     },
-    bookItem: {
+    itemContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         padding: 12,
@@ -226,12 +226,12 @@ const styles = StyleSheet.create({
         marginBottom: 12,
         borderWidth: 1,
     },
-    bookContent: {
+    itemContent: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
     },
-    bookIcon: {
+    itemIcon: {
         width: 48,
         height: 64, // Taller for book proportion
         backgroundColor: 'rgba(0,0,0,0.05)',
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginRight: 12,
     },
-    bookInfo: {
+    itemInfo: {
         flex: 1,
         justifyContent: 'center',
     },
@@ -250,12 +250,12 @@ const styles = StyleSheet.create({
         marginBottom: 4,
         flexWrap: 'wrap',
     },
-    bookStoryTitle: {
+    storyTitle: {
         fontSize: 16,
         fontWeight: 'bold',
         marginRight: 8,
     },
-    bookChapterTitle: {
+    chapterTitle: {
         fontSize: 14,
         marginBottom: 4,
     },
@@ -269,10 +269,10 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: '600',
     },
-    bookMeta: {
+    itemMeta: {
         fontSize: 12,
     },
-    bookActions: {
+    itemActions: {
         flexDirection: 'row',
         alignItems: 'center',
     },
@@ -288,3 +288,4 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
 });
+

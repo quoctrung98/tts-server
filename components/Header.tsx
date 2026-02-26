@@ -7,11 +7,11 @@ interface HeaderProps {
     theme: ThemeMode;
     onToggleTheme: () => void;
     onOpenSettings: () => void;
-    onOpenLibrary: () => void;
+    onOpenHistory: () => void;
     colors: ThemeColors;
 }
 
-export function Header({ theme, onToggleTheme, onOpenSettings, onOpenLibrary, colors }: HeaderProps) {
+export function Header({ theme, onToggleTheme, onOpenSettings, onOpenHistory, colors }: HeaderProps) {
     const getThemeIcon = () => {
         switch (theme) {
             case 'light': return '🍂'; // Icon for switching TO Sepia? Or current state?
@@ -48,9 +48,9 @@ export function Header({ theme, onToggleTheme, onOpenSettings, onOpenLibrary, co
             <View style={styles.headerButtons}>
                 <TouchableOpacity
                     style={[styles.headerButton, { backgroundColor: colors.cardBackground }]}
-                    onPress={onOpenLibrary}
+                    onPress={onOpenHistory}
                 >
-                    <Text style={styles.headerIcon}>📚</Text>
+                    <Text style={styles.headerIcon}>🕒</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={[styles.headerButton, { backgroundColor: colors.cardBackground }]}

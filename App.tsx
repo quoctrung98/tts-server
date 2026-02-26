@@ -18,7 +18,7 @@ import {
   useReadingProgress,
   useChapterLoader,
   useTTSPlayer,
-  useLibrary,
+  useHistory,
 } from './hooks';
 
 // Components
@@ -27,7 +27,7 @@ import { ChapterUrlInput } from './components/ChapterUrlInput';
 import { ChapterContentDisplay } from './components/ChapterContentDisplay';
 import { TTSControlsSection } from './components/TTSControlsSection';
 import SettingsModal from './components/SettingsModal';
-import { LibraryModal } from './components/LibraryModal';
+import { HistoryModal } from './components/HistoryModal';
 
 // Config - no longer needed here as ttsPlayer handles TTS setup
 
@@ -35,7 +35,7 @@ export default function App() {
   // URL State
   const [chapterUrl, setChapterUrl] = useState('');
   const [showSettings, setShowSettings] = useState(false);
-  const [showLibrary, setShowLibrary] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   // Custom Hooks
   const { isDarkMode, theme, cycleTheme, colors: baseColors } = useDarkMode();
@@ -63,7 +63,7 @@ export default function App() {
     setChapterContent
   } = useChapterLoader();
   const { saveProgress, loadProgress } = useReadingProgress();
-  const library = useLibrary();
+  const history = useHistory();
   const ttsPlayer = useTTSPlayer(settings);
 
   // Keep screen awake while playing
@@ -101,7 +101,7 @@ export default function App() {
     if (chapter) {
       await saveProgress(targetUrl, startChunk, chapter.title);
       // Add to history
-      await library.updateProgress(targetUrl, chapter.title, startChunk, ttsPlayer.textChunks.length, chapter.novelTitle);
+      await history.updateProgress(targetUrl, chapter.title, startChunk, ttsPlayer.textChunks.length, chapter.novelTitle);
 
       // Auto-play after loading
       if (autoPlay) {
@@ -110,7 +110,7 @@ export default function App() {
           (index, text) => {
             saveProgress(targetUrl, index, chapter.title);
             // Update history progress
-            library.updateProgress(targetUrl, chapter.title, index, ttsPlayer.textChunks.length, chapter.novelTitle);
+            history.updateProgress(targetUrl, chapter.title, index, ttsPlayer.textChunks.length, chapter.novelTitle);
           },
           async () => {
             if (settings.autoNextChapter && chapter.nextChapterUrl) {
@@ -145,7 +145,7 @@ export default function App() {
       (index, text) => {
         saveProgress(chapterUrl, index, chapterContent.title);
         // Update history progress
-        library.updateProgress(chapterUrl, chapterContent.title, index, ttsPlayer.textChunks.length, chapterContent.novelTitle);
+        history.updateProgress(chapterUrl, chapterContent.title, index, ttsPlayer.textChunks.length, chapterContent.novelTitle);
       },
       // onComplete callback
       async () => {
@@ -190,7 +190,7 @@ export default function App() {
         (index, text) => {
           saveProgress(url, index, chapter.title);
           // Update history progress
-          library.updateProgress(url, chapter.title, index, ttsPlayer.textChunks.length, chapter.novelTitle);
+          history.updateProgress(url, chapter.title, index, ttsPlayer.textChunks.length, chapter.novelTitle);
         },
         // onComplete callback
         async () => {
@@ -269,7 +269,7 @@ export default function App() {
             theme={theme}
             onToggleTheme={cycleTheme}
             onOpenSettings={() => setShowSettings(true)}
-            onOpenLibrary={() => setShowLibrary(true)}
+            onOpenHistory={() => setShowHistory(true)}
             colors={colors}
           />
 
@@ -327,22 +327,23 @@ export default function App() {
         />
 
 
-        {/* Library Modal */}
-        <LibraryModal
-          visible={showLibrary}
-          onClose={() => setShowLibrary(false)}
-          recentBooks={library.recentBooks}
-          favoriteBooks={library.favoriteBooks}
-          onSelectBook={(book) => {
-            setChapterUrl(book.lastChapterUrl);
-            setShowLibrary(false);
+        {/* History Modal */}
+        <HistoryModal
+          visible={showHistory}
+          onClose={() => setShowHistory(false)}
+          recentItems={history.recentItems}
+          favoriteItems={history.favoriteItems}
+          onSelectItem={(item) => {
+            setChapterUrl(item.lastChapterUrl);
+            setShowHistory(false);
             // Resume reading
-            handleFetchChapter(book.lastChapterUrl, true, book.lastChunkIndex);
+            handleFetchChapter(item.lastChapterUrl, true, item.lastChunkIndex);
           }}
-          onToggleFavorite={(book) => library.toggleFavorite(book.id)}
-          onRemoveBook={(book) => library.removeBook(book.id)}
+          onToggleFavorite={(item) => history.toggleFavorite(item.id)}
+          onRemoveItem={(item) => history.removeHistoryItem(item.id)}
           colors={colors}
         />
+
       </SafeAreaView>
     </View>
   );
