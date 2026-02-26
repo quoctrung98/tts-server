@@ -2,7 +2,7 @@ import { IChapterProvider, ChapterContent } from './IChapterProvider';
 import { restoreCensoredWords } from '../utils/textUtils';
 
 export class TruyenHdaProvider implements IChapterProvider {
-    private readonly baseUrlPattern = /truyenhda\.com/i;
+    private readonly baseUrlPattern = /truyenhdv\.com/i;
 
     getName(): string {
         return 'Truyện HĐA';
@@ -151,7 +151,7 @@ export class TruyenHdaProvider implements IChapterProvider {
         if (match && match[1]) {
             let url = match[1];
             if (url.startsWith('/')) {
-                url = 'https://truyenhda.com' + url;
+                url = 'https://truyenhdv.com' + url;
             }
             return url;
         }
@@ -163,7 +163,7 @@ export class TruyenHdaProvider implements IChapterProvider {
         if (match && match[1]) {
             let url = match[1];
             if (url.startsWith('/')) {
-                url = 'https://truyenhda.com' + url;
+                url = 'https://truyenhdv.com' + url;
             }
             return url;
         }
