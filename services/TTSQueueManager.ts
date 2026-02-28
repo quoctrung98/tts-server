@@ -1,11 +1,12 @@
 // TTS Queue Manager - Pre-fetch and cache audio chunks
-import { AudioPlayer } from './AudioPlayer';
+// Uses PersistentAudioPlayer to maintain audio element across chunks
+import { PersistentAudioPlayer, MediaSessionMetadata } from './PersistentAudioPlayer';
+import { Platform } from 'react-native';
 
 export interface AudioChunk {
   index: number;
   text: string;
   audioUri: string | null;
-  player: AudioPlayer | null;
   isLoading: boolean;
   isLoaded: boolean;
   error: string | null;
@@ -22,6 +23,13 @@ export class TTSQueueManager {
   private speed: number;
   private pitch: number;
   private volume: number;
+
+  private bookTitle: string = 'TTS Reader';
+  private chapterTitle: string = '';
+
+  // Use singleton persistent player to avoid gaps between chunks
+  private player: PersistentAudioPlayer;
+  private currentPlayingChunkId: number = 0;
 
   private onChunkStart?: (index: number, text: string) => void;
   private onChunkEnd?: (index: number) => void;
@@ -42,12 +50,14 @@ export class TTSQueueManager {
     this.pitch = pitch;
     this.volume = volume;
 
-    // Initialize chunks
+    // Get the singleton persistent player
+    this.player = PersistentAudioPlayer.getInstance();
+
+    // Initialize chunks (no longer storing player per chunk)
     this.chunks = texts.map((text, index) => ({
       index,
       text,
       audioUri: null,
-      player: null,
       isLoading: false,
       isLoaded: false,
       error: null,
@@ -66,9 +76,63 @@ export class TTSQueueManager {
     this.onError = callbacks.onError;
   }
 
+  /**
+   * Set metadata for Media Session (shown on lock screen when screen is off)
+   * Call this before start() for best experience
+   */
+  setMediaMetadata(bookTitle: string, chapterTitle?: string) {
+    this.bookTitle = bookTitle;
+    this.chapterTitle = chapterTitle || '';
+  }
+
+  /**
+   * Initialize Media Session for background audio on Chrome/mobile
+   * This enables audio to continue when screen is off
+   */
+  initMediaSession() {
+    if (Platform.OS !== 'web') return;
+
+    PersistentAudioPlayer.initMediaSession({
+      onPlay: () => {
+        this.resume();
+      },
+      onPause: () => {
+        this.pause();
+      },
+      onPreviousTrack: () => {
+        if (this.currentIndex > 0) {
+          this.jumpToChunk(this.currentIndex - 1);
+        }
+      },
+      onNextTrack: () => {
+        if (this.currentIndex < this.chunks.length - 1) {
+          this.jumpToChunk(this.currentIndex + 1);
+        }
+      },
+    });
+  }
+
+  private updateMediaSessionState() {
+    if (Platform.OS !== 'web') return;
+
+    const currentChunk = this.chunks[this.currentIndex];
+    const previewText = currentChunk?.text?.substring(0, 50) || '';
+
+    PersistentAudioPlayer.updateMediaSessionMetadata({
+      title: this.chapterTitle || `Đoạn ${this.currentIndex + 1}/${this.chunks.length}`,
+      artist: this.bookTitle,
+      album: previewText + (currentChunk?.text?.length > 50 ? '...' : ''),
+    });
+
+    PersistentAudioPlayer.setMediaSessionPlaybackState(this.isPlaying ? 'playing' : 'paused');
+  }
+
   async start(startIndex: number = 0) {
     this.isPlaying = true;
     this.currentIndex = startIndex;
+
+    // Initialize Media Session for background audio on web
+    this.initMediaSession();
 
     // Pre-fetch first few chunks
     this.prefetchChunks();
@@ -79,37 +143,21 @@ export class TTSQueueManager {
 
   async pause() {
     this.isPlaying = false;
-    const current = this.chunks[this.currentIndex];
-    if (current?.player) {
-      await current.player.pause();
-    }
+    await this.player.pause();
+    this.updateMediaSessionState();
   }
 
   async resume() {
     this.isPlaying = true;
-    const current = this.chunks[this.currentIndex];
-    if (current?.player) {
-      await current.player.play();
-    }
+    await this.player.play();
+    this.updateMediaSessionState();
   }
 
   async stop() {
     this.isPlaying = false;
-
-    // Stop and unload all players
-    for (const chunk of this.chunks) {
-      if (chunk.player) {
-        try {
-          await chunk.player.stop();
-          await chunk.player.unload();
-        } catch (e) {
-          // Ignore errors during cleanup
-        }
-        chunk.player = null;
-      }
-    }
-
+    await this.player.stop();
     this.currentIndex = -1;
+    PersistentAudioPlayer.setMediaSessionPlaybackState('none');
   }
 
   getCurrentIndex(): number {
@@ -137,36 +185,15 @@ export class TTSQueueManager {
     // Store playing state
     const wasPlaying = this.isPlaying;
 
-    // IMPORTANT: Stop ALL currently playing audio
-    // Stop and cleanup current chunk
-    if (this.currentIndex >= 0 && this.currentIndex < this.chunks.length) {
-      const currentChunk = this.chunks[this.currentIndex];
-      if (currentChunk?.player) {
-        try {
-          await currentChunk.player.stop();
-          await currentChunk.player.unload();
-          currentChunk.player = null;
-        } catch (e) {
-          console.error('Error stopping current chunk:', e);
-        }
-      }
-    }
+    // Stop current playback
+    await this.player.stop();
 
-    // Also cleanup any other chunks that might be playing (safety check)
-    for (let i = 0; i < this.chunks.length; i++) {
-      if (i !== index && this.chunks[i]?.player) {
-        try {
-          await this.chunks[i].player!.stop();
-          await this.chunks[i].player!.unload();
-          this.chunks[i].player = null;
-        } catch (e) {
-          // Ignore cleanup errors
-        }
-      }
-    }
+    // Invalidate current chunk ID to prevent old callbacks
+    this.currentPlayingChunkId++;
 
     // Update index
     this.currentIndex = index;
+
     // Pre-fetch chunks around the target index
     this.prefetchChunks();
 
@@ -174,7 +201,6 @@ export class TTSQueueManager {
     if (wasPlaying) {
       this.isPlaying = true;
       await this.playNext();
-    } else {
     }
   }
 
@@ -236,13 +262,11 @@ export class TTSQueueManager {
   }
 
   private async playNext() {
-
     if (!this.isPlaying) {
       return;
     }
 
     if (this.currentIndex >= this.chunks.length) {
-
       try {
         if (this.onAllComplete) {
           this.onAllComplete();
@@ -278,31 +302,25 @@ export class TTSQueueManager {
     }
 
     try {
-      // Create audio player
-      const player = new AudioPlayer();
-      const currentIdx = this.currentIndex; // Capture index
+      // Capture current state to verify callback validity
+      const currentIdx = this.currentIndex;
+      this.currentPlayingChunkId++;
+      const chunkId = this.currentPlayingChunkId;
 
-      // Load audio with callbacks and volume
-      await player.load(
+      // Load audio into the persistent player (reuses same audio element)
+      await this.player.load(
         chunk.audioUri,
         {
           onFinish: () => {
             // IMPORTANT: Only proceed if this is still the current chunk
             // (prevents old callbacks from triggering after seek)
-            if (this.currentIndex !== currentIdx) {
+            if (this.currentPlayingChunkId !== chunkId || this.currentIndex !== currentIdx) {
               return;
-            }
-
-            // Cleanup this chunk's player
-            const finishedChunk = this.chunks[currentIdx];
-            if (finishedChunk.player) {
-              finishedChunk.player.unload().catch(() => { });
-              finishedChunk.player = null;
             }
 
             this.onChunkEnd?.(currentIdx);
 
-            // Move to next
+            // Move to next chunk (NO unload - reuse the same player)
             this.currentIndex++;
             this.playNext();
           },
@@ -310,7 +328,7 @@ export class TTSQueueManager {
             console.error(`❌ Error playing chunk ${currentIdx}:`, error);
 
             // Only proceed if this is still the current chunk
-            if (this.currentIndex !== currentIdx) {
+            if (this.currentPlayingChunkId !== chunkId || this.currentIndex !== currentIdx) {
               return;
             }
 
@@ -329,12 +347,13 @@ export class TTSQueueManager {
         this.volume
       );
 
-      chunk.player = player;
-
       // Start playing
-      await player.play();
+      await this.player.play();
 
       this.onChunkStart?.(this.currentIndex, chunk.text);
+
+      // Update Media Session for lock screen controls
+      this.updateMediaSessionState();
 
       // Pre-fetch next chunks while playing
       this.prefetchChunks();
@@ -354,6 +373,4 @@ export class TTSQueueManager {
       await this.playNext();
     }
   }
-
 }
-

@@ -127,6 +127,9 @@ export function useTTSPlayer(settings: TTSSettings): UseTTSPlayerReturn {
                 },
             });
 
+            // Set metadata for lock screen controls (Chrome background audio)
+            manager.setMediaMetadata(content.title);
+
             ttsManagerRef.current = manager;
 
             // Start playing

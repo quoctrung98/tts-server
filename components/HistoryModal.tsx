@@ -10,7 +10,7 @@ import {
     SafeAreaView,
     Platform
 } from 'react-native';
-import { HistoryItem } from '../hooks/useHistory';
+import { HistoryItem, ChapterHistory } from '../hooks/useHistory';
 import { ThemeColors } from '../hooks/useDarkMode';
 
 interface HistoryModalProps {
@@ -19,6 +19,7 @@ interface HistoryModalProps {
     recentItems: HistoryItem[];
     favoriteItems: HistoryItem[];
     onSelectItem: (item: HistoryItem) => void;
+    onSelectChapter: (item: HistoryItem, chapter: ChapterHistory) => void;
     onToggleFavorite: (item: HistoryItem) => void;
     onRemoveItem: (item: HistoryItem) => void;
     colors: ThemeColors;
@@ -32,61 +33,108 @@ export function HistoryModal({
     recentItems,
     favoriteItems,
     onSelectItem,
+    onSelectChapter,
     onToggleFavorite,
     onRemoveItem,
     colors
 }: HistoryModalProps) {
     const [activeTab, setActiveTab] = useState<Tab>('recent');
+    const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
 
     const data = activeTab === 'recent' ? recentItems : favoriteItems;
 
-    const renderItem = ({ item }: { item: HistoryItem }) => (
-        <View style={[styles.itemContainer, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-            <TouchableOpacity
-                style={styles.itemContent}
-                onPress={() => onSelectItem(item)}
-            >
-                <View style={styles.itemIcon}>
-                    <Text style={{ fontSize: 24 }}>🕒</Text>
-                </View>
-                <View style={styles.itemInfo}>
-                    <View style={styles.titleRow}>
-                        <Text style={[styles.storyTitle, { color: colors.text }]} numberOfLines={1}>
-                            {item.storyTitle || item.title || item.id}
+    const toggleExpand = (itemId: string) => {
+        setExpandedItemId(prev => prev === itemId ? null : itemId);
+    };
+
+    const renderChapterItem = (item: HistoryItem, chapter: ChapterHistory, index: number) => (
+        <TouchableOpacity
+            key={chapter.url + index}
+            style={[styles.chapterItem, { backgroundColor: colors.inputBackground }]}
+            onPress={() => onSelectChapter(item, chapter)}
+        >
+            <Text style={[styles.chapterItemTitle, { color: colors.text }]} numberOfLines={1}>
+                {chapter.title}
+            </Text>
+            <Text style={[styles.chapterItemMeta, { color: colors.textSecondary }]}>
+                {new Date(chapter.timestamp).toLocaleDateString()} • {chapter.progressPercent}%
+            </Text>
+        </TouchableOpacity>
+    );
+
+    const renderItem = ({ item }: { item: HistoryItem }) => {
+        const isExpanded = expandedItemId === item.id;
+        const hasMultipleChapters = item.recentChapters && item.recentChapters.length > 1;
+
+        return (
+            <View style={[styles.itemContainer, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
+                <TouchableOpacity
+                    style={styles.itemContent}
+                    onPress={() => onSelectItem(item)}
+                >
+                    <View style={styles.itemIcon}>
+                        <Text style={{ fontSize: 24 }}>📖</Text>
+                    </View>
+                    <View style={styles.itemInfo}>
+                        <View style={styles.titleRow}>
+                            <Text style={[styles.storyTitle, { color: colors.text }]} numberOfLines={1}>
+                                {item.storyTitle || item.title || item.id}
+                            </Text>
+                            {item.provider && (
+                                <View style={[styles.providerBadge, { backgroundColor: colors.inputBackground }]}>
+                                    <Text style={[styles.providerText, { color: colors.textSecondary }]}>
+                                        {item.provider}
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
+                        <Text style={[styles.chapterTitle, { color: colors.textSecondary }]} numberOfLines={1}>
+                            {item.title}
                         </Text>
-                        {item.provider && (
-                            <View style={[styles.providerBadge, { backgroundColor: colors.inputBackground }]}>
-                                <Text style={[styles.providerText, { color: colors.textSecondary }]}>
-                                    {item.provider}
-                                </Text>
-                            </View>
+                        <Text style={[styles.itemMeta, { color: colors.textSecondary }]}>
+                            {new Date(item.lastReadTimestamp).toLocaleDateString()} • {item.progressPercent}%
+                            {hasMultipleChapters && ` • ${item.recentChapters.length} chương`}
+                        </Text>
+                    </View>
+                </TouchableOpacity>
+
+                <View style={styles.itemActions}>
+                    {hasMultipleChapters && (
+                        <TouchableOpacity
+                            style={styles.actionButton}
+                            onPress={() => toggleExpand(item.id)}
+                        >
+                            <Text style={{ fontSize: 18 }}>{isExpanded ? '▲' : '▼'}</Text>
+                        </TouchableOpacity>
+                    )}
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => onToggleFavorite(item)}
+                    >
+                        <Text style={{ fontSize: 20 }}>{item.isFavorite ? '❤️' : '🤍'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => onRemoveItem(item)}
+                    >
+                        <Text style={{ fontSize: 20 }}>🗑️</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Expandable chapters list */}
+                {isExpanded && item.recentChapters && (
+                    <View style={[styles.chaptersContainer, { borderTopColor: colors.border }]}>
+                        <Text style={[styles.chaptersHeader, { color: colors.textSecondary }]}>
+                            Chương đã đọc gần đây:
+                        </Text>
+                        {item.recentChapters.map((chapter, index) => 
+                            renderChapterItem(item, chapter, index)
                         )}
                     </View>
-                    <Text style={[styles.chapterTitle, { color: colors.textSecondary }]} numberOfLines={1}>
-                        {item.title}
-                    </Text>
-                    <Text style={[styles.itemMeta, { color: colors.textSecondary }]}>
-                        {new Date(item.lastReadTimestamp).toLocaleDateString()} • {item.progressPercent}%
-                    </Text>
-                </View>
-            </TouchableOpacity>
-
-            <View style={styles.itemActions}>
-                <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() => onToggleFavorite(item)}
-                >
-                    <Text style={{ fontSize: 20 }}>{item.isFavorite ? '❤️' : '🤍'}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() => onRemoveItem(item)}
-                >
-                    <Text style={{ fontSize: 20 }}>🗑️</Text>
-                </TouchableOpacity>
+                )}
             </View>
-        </View>
-    );
+        );
+    };
 
     return (
         <Modal
@@ -286,6 +334,31 @@ const styles = StyleSheet.create({
     emptyText: {
         fontSize: 16,
         textAlign: 'center',
+    },
+    chaptersContainer: {
+        width: '100%',
+        paddingTop: 12,
+        marginTop: 12,
+        borderTopWidth: 1,
+    },
+    chaptersHeader: {
+        fontSize: 12,
+        fontWeight: '600',
+        marginBottom: 8,
+        paddingHorizontal: 4,
+    },
+    chapterItem: {
+        padding: 10,
+        borderRadius: 8,
+        marginBottom: 6,
+    },
+    chapterItemTitle: {
+        fontSize: 14,
+        fontWeight: '500',
+        marginBottom: 2,
+    },
+    chapterItemMeta: {
+        fontSize: 11,
     },
 });
 

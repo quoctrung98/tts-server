@@ -1,6 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { storage } from '../utils/storage';
 
+const MAX_RECENT_CHAPTERS = 20;
+
+export interface ChapterHistory {
+    url: string;
+    title: string;
+    chunkIndex: number;
+    timestamp: number;
+    progressPercent: number;
+}
+
 export interface HistoryItem {
     id: string; // Unique ID (storyTitle or URL)
     title: string; // Last read chapter title
@@ -13,6 +23,7 @@ export interface HistoryItem {
     lastReadTimestamp: number;
     isFavorite: boolean;
     progressPercent?: number;
+    recentChapters: ChapterHistory[]; // List of recently read chapters (max 20)
 }
 
 export interface UseHistoryReturn {
@@ -23,6 +34,7 @@ export interface UseHistoryReturn {
     updateProgress: (url: string, title: string, chunkIndex: number, totalChunks: number, storyTitle?: string) => Promise<void>;
     toggleFavorite: (id: string) => Promise<void>;
     removeHistoryItem: (id: string) => Promise<void>;
+    getRecentChapters: (storyId: string) => ChapterHistory[];
 }
 
 export function useHistory(): UseHistoryReturn {
@@ -74,25 +86,56 @@ export function useHistory(): UseHistoryReturn {
         // This ensures all chapters of the same story update the same history entry
         const id = storyTitle || url;
 
+        // Create new chapter history entry
+        const chapterEntry: ChapterHistory = {
+            url,
+            title,
+            chunkIndex,
+            timestamp,
+            progressPercent
+        };
+
         const existingItemIndex = items.findIndex(item => item.id === id || (storyTitle && item.storyTitle === storyTitle));
 
         let newItems = [...items];
 
         if (existingItemIndex >= 0) {
-            // Update existing entry (saves last read chapter for this story)
+            const existingItem = newItems[existingItemIndex];
+            
+            // Get existing chapters or initialize empty array
+            let recentChapters = existingItem.recentChapters || [];
+            
+            // Check if this chapter already exists in history (by URL)
+            const existingChapterIndex = recentChapters.findIndex(ch => ch.url === url);
+            
+            if (existingChapterIndex >= 0) {
+                // Update existing chapter entry
+                recentChapters[existingChapterIndex] = chapterEntry;
+            } else {
+                // Add new chapter to the beginning
+                recentChapters = [chapterEntry, ...recentChapters];
+            }
+            
+            // Sort by timestamp (most recent first) and keep only last MAX_RECENT_CHAPTERS
+            recentChapters = recentChapters
+                .sort((a, b) => b.timestamp - a.timestamp)
+                .slice(0, MAX_RECENT_CHAPTERS);
+
+            // Update existing entry
             newItems[existingItemIndex] = {
-                ...newItems[existingItemIndex],
-                title: title, // Update current chapter title
+                ...existingItem,
+                title: title,
                 lastChapterUrl: url,
                 lastChapterTitle: title,
                 lastChunkIndex: chunkIndex,
                 lastReadTimestamp: timestamp,
                 progressPercent: progressPercent,
-                storyTitle: storyTitle || newItems[existingItemIndex].storyTitle,
-                provider: provider || newItems[existingItemIndex].provider
+                storyTitle: storyTitle || existingItem.storyTitle,
+                provider: provider || existingItem.provider,
+                recentChapters: recentChapters
             };
         } else {
-            // Add new story to history
+            // Add new story to history with first chapter
             const newItem: HistoryItem = {
                 id: id,
                 title: title,
@@ -104,7 +147,8 @@ export function useHistory(): UseHistoryReturn {
                 lastReadTimestamp: timestamp,
                 isFavorite: false,
                 progressPercent: progressPercent,
-                coverUrl: 'https://via.placeholder.com/150'
+                coverUrl: 'https://via.placeholder.com/150',
+                recentChapters: [chapterEntry]
             };
             newItems.push(newItem);
         }
@@ -124,6 +168,12 @@ export function useHistory(): UseHistoryReturn {
         await saveHistory(newItems);
     }, [items]);
 
+    // Get recent chapters for a specific story
+    const getRecentChapters = useCallback((storyId: string): ChapterHistory[] => {
+        const item = items.find(i => i.id === storyId || i.storyTitle === storyId);
+        return item?.recentChapters || [];
+    }, [items]);
+
     return {
         items,
         recentItems,
@@ -131,7 +181,8 @@ export function useHistory(): UseHistoryReturn {
         isLoading,
         updateProgress,
         toggleFavorite,
-        removeHistoryItem
+        removeHistoryItem,
+        getRecentChapters
     };
 }
 

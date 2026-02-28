@@ -7,6 +7,12 @@ export interface AudioPlayerCallbacks {
   onError?: (error: string) => void;
 }
 
+export interface MediaSessionMetadata {
+  title?: string;
+  artist?: string;
+  album?: string;
+}
+
 export class AudioPlayer {
   private sound: Audio.Sound | null = null;
   private htmlAudio: HTMLAudioElement | null = null;
@@ -17,6 +23,10 @@ export class AudioPlayer {
   private onLoadedData: (() => void) | null = null;
   private onError: ((e: Event | string) => void) | null = null;
   private onEnded: (() => void) | null = null;
+
+  private static mediaSessionInitialized = false;
+  private static onMediaSessionPlay: (() => void) | null = null;
+  private static onMediaSessionPause: (() => void) | null = null;
 
   async load(uri: string, callbacks: AudioPlayerCallbacks, volume: number = 0.8) {
     this.callbacks = callbacks;
@@ -70,6 +80,99 @@ export class AudioPlayer {
 
       this.htmlAudio = audio;
     });
+  }
+
+  /**
+   * Initialize Media Session API for background audio playback on Chrome/mobile
+   * This allows audio to continue playing when screen is off
+   */
+  static initMediaSession(handlers: {
+    onPlay?: () => void;
+    onPause?: () => void;
+    onSeekBackward?: () => void;
+    onSeekForward?: () => void;
+    onPreviousTrack?: () => void;
+    onNextTrack?: () => void;
+  }) {
+    if (Platform.OS !== 'web') return;
+    if (!('mediaSession' in navigator)) {
+      console.warn('Media Session API not supported');
+      return;
+    }
+
+    AudioPlayer.onMediaSessionPlay = handlers.onPlay || null;
+    AudioPlayer.onMediaSessionPause = handlers.onPause || null;
+
+    try {
+      navigator.mediaSession.setActionHandler('play', () => {
+        handlers.onPlay?.();
+      });
+
+      navigator.mediaSession.setActionHandler('pause', () => {
+        handlers.onPause?.();
+      });
+
+      if (handlers.onSeekBackward) {
+        navigator.mediaSession.setActionHandler('seekbackward', () => {
+          handlers.onSeekBackward?.();
+        });
+      }
+
+      if (handlers.onSeekForward) {
+        navigator.mediaSession.setActionHandler('seekforward', () => {
+          handlers.onSeekForward?.();
+        });
+      }
+
+      if (handlers.onPreviousTrack) {
+        navigator.mediaSession.setActionHandler('previoustrack', () => {
+          handlers.onPreviousTrack?.();
+        });
+      }
+
+      if (handlers.onNextTrack) {
+        navigator.mediaSession.setActionHandler('nexttrack', () => {
+          handlers.onNextTrack?.();
+        });
+      }
+
+      AudioPlayer.mediaSessionInitialized = true;
+      console.log('Media Session initialized for background audio');
+    } catch (error) {
+      console.error('Failed to initialize Media Session:', error);
+    }
+  }
+
+  /**
+   * Update Media Session metadata (shown on lock screen)
+   */
+  static updateMediaSessionMetadata(metadata: MediaSessionMetadata) {
+    if (Platform.OS !== 'web') return;
+    if (!('mediaSession' in navigator)) return;
+
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: metadata.title || 'TTS Audio',
+        artist: metadata.artist || 'TTS Reader',
+        album: metadata.album || '',
+      });
+    } catch (error) {
+      console.error('Failed to update Media Session metadata:', error);
+    }
+  }
+
+  /**
+   * Set Media Session playback state
+   */
+  static setMediaSessionPlaybackState(state: 'playing' | 'paused' | 'none') {
+    if (Platform.OS !== 'web') return;
+    if (!('mediaSession' in navigator)) return;
+
+    try {
+      navigator.mediaSession.playbackState = state;
+    } catch (error) {
+      console.error('Failed to set playback state:', error);
+    }
   }
 
   private cleanupWebAudio() {

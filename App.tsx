@@ -336,8 +336,14 @@ export default function App() {
           onSelectItem={(item) => {
             setChapterUrl(item.lastChapterUrl);
             setShowHistory(false);
-            // Resume reading
+            // Resume reading from last chapter
             handleFetchChapter(item.lastChapterUrl, true, item.lastChunkIndex);
+          }}
+          onSelectChapter={(item, chapter) => {
+            setChapterUrl(chapter.url);
+            setShowHistory(false);
+            // Resume reading from selected chapter
+            handleFetchChapter(chapter.url, true, chapter.chunkIndex);
           }}
           onToggleFavorite={(item) => history.toggleFavorite(item.id)}
           onRemoveItem={(item) => history.removeHistoryItem(item.id)}

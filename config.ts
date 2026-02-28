@@ -10,8 +10,37 @@
  * For production deployment:
  * - Set EXPO_PUBLIC_TTS_URL in Vercel/Netlify environment variables
  * - Example: https://your-app.onrender.com
+ * 
+ * Local development:
+ * - Flask server runs on port 5000
+ * - Expo dev server runs on different port (8081, 19006, etc.)
  */
-export const TTS_SERVER_URL = window.location.origin + '/api';
+function getTTSServerUrl(): string {
+  // Check for environment variable first
+  if (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_TTS_URL) {
+    return process.env.EXPO_PUBLIC_TTS_URL;
+  }
+
+  // In browser, check if we're on production (not localhost dev ports)
+  if (typeof window !== 'undefined') {
+    const port = window.location.port;
+    const isLocalDev = window.location.hostname === 'localhost' && 
+      (port === '8081' || port === '19006' || port === '19000' || port === '3000');
+    
+    if (isLocalDev) {
+      // Local development: Flask server on port 5000
+      return 'http://localhost:5000';
+    }
+    
+    // Production: use same origin with /api path
+    return window.location.origin + '/api';
+  }
+
+  // Fallback
+  return 'http://localhost:5000';
+}
+
+export const TTS_SERVER_URL = getTTSServerUrl();
 
 /**
  * Cloud Sync Configuration (Supabase)
