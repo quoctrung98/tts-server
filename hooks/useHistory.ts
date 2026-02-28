@@ -48,10 +48,30 @@ export function useHistory(): UseHistoryReturn {
 
     const loadHistory = async () => {
         setIsLoading(true);
-        // Fallback to library_books for migration if needed, but here we'll just start fresh or use same key
-        // Let's keep the key for now to preserve user data, or migrate it.
         const storedItems = await storage.load<HistoryItem[]>('library_books', []);
-        setItems(storedItems || []);
+        
+        // Migrate old data: ensure all items have recentChapters array
+        const migratedItems = (storedItems || []).map(item => {
+            if (!item.recentChapters) {
+                // Create recentChapters from current lastChapter data
+                const initialChapter: ChapterHistory = {
+                    url: item.lastChapterUrl,
+                    title: item.lastChapterTitle || item.title,
+                    chunkIndex: item.lastChunkIndex || 0,
+                    timestamp: item.lastReadTimestamp || Date.now(),
+                    progressPercent: item.progressPercent || 0
+                };
+                return { ...item, recentChapters: [initialChapter] };
+            }
+            return item;
+        });
+        
+        // Save migrated data if there were changes
+        if (storedItems && storedItems.some(item => !item.recentChapters)) {
+            await storage.save('library_books', migratedItems);
+        }
+        
+        setItems(migratedItems);
         setIsLoading(false);
     };
 
@@ -65,6 +85,7 @@ export function useHistory(): UseHistoryReturn {
     const favoriteItems = items.filter(b => b.isFavorite);
 
     // Update progress (create/update history item for the story)
+    // Read directly from storage to avoid stale closure issues
     const updateProgress = useCallback(async (
         url: string,
         title: string,
@@ -95,9 +116,14 @@ export function useHistory(): UseHistoryReturn {
             progressPercent
         };
 
-        const existingItemIndex = items.findIndex(item => item.id === id || (storyTitle && item.storyTitle === storyTitle));
+        // Read fresh data from storage to avoid stale state
+        const currentItems = await storage.load<HistoryItem[]>('library_books', []);
+        const existingItemIndex = currentItems.findIndex(item => item.id === id || (storyTitle && item.storyTitle === storyTitle));
 
-        let newItems = [...items];
+        console.log('[History] updateProgress called:', { url: url.substring(0, 50), title, storyTitle, id });
+        console.log('[History] existingItemIndex:', existingItemIndex, 'currentItems count:', currentItems.length);
+
+        let newItems = [...currentItems];
 
         if (existingItemIndex >= 0) {
             const existingItem = newItems[existingItemIndex];
@@ -120,6 +146,8 @@ export function useHistory(): UseHistoryReturn {
             recentChapters = recentChapters
                 .sort((a, b) => b.timestamp - a.timestamp)
                 .slice(0, MAX_RECENT_CHAPTERS);
+
+            console.log('[History] recentChapters after update:', recentChapters.length, recentChapters.map(c => c.title.substring(0, 30)));
 
             // Update existing entry
             newItems[existingItemIndex] = {
@@ -154,7 +182,7 @@ export function useHistory(): UseHistoryReturn {
         }
 
         await saveHistory(newItems);
-    }, [items]);
+    }, []);
 
     const toggleFavorite = useCallback(async (id: string) => {
         const newItems = items.map(item =>
