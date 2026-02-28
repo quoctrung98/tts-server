@@ -218,6 +218,29 @@ export class TTSQueueManager {
     await Promise.all(promises);
   }
 
+  /**
+   * Preload the next chunk into the inactive audio buffer for gapless playback.
+   * This is called while the current chunk is playing.
+   */
+  private async preloadNextChunkIntoBuffer() {
+    const nextIndex = this.currentIndex + 1;
+    if (nextIndex >= this.chunks.length) return;
+
+    const nextChunk = this.chunks[nextIndex];
+    
+    // Wait for the chunk to be fetched if still loading
+    let attempts = 0;
+    while (nextChunk.isLoading && attempts < 50) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
+    }
+
+    if (nextChunk.audioUri && nextChunk.isLoaded) {
+      console.log(`[TTSQueueManager] Preloading chunk ${nextIndex} into inactive buffer`);
+      await this.player.preloadNext(nextChunk.audioUri);
+    }
+  }
+
   private async fetchChunk(index: number) {
     const chunk = this.chunks[index];
     if (!chunk || chunk.isLoading || chunk.isLoaded) return;
@@ -259,6 +282,66 @@ export class TTSQueueManager {
     } finally {
       chunk.isLoading = false;
     }
+  }
+
+  /**
+   * Called after auto-advance from PersistentAudioPlayer.
+   * Updates state and preloads next chunk, but doesn't restart playback.
+   */
+  private async playNextAfterAutoAdvance() {
+    if (!this.isPlaying) {
+      return;
+    }
+
+    if (this.currentIndex >= this.chunks.length) {
+      this.onAllComplete?.();
+      return;
+    }
+
+    const chunk = this.chunks[this.currentIndex];
+    
+    // Audio is already playing (auto-advanced), just update state and callbacks
+    if (this.player.isCurrentlyPlaying()) {
+      console.log(`[TTSQueueManager] Chunk ${this.currentIndex} auto-advanced, updating state`);
+      
+      this.currentPlayingChunkId++;
+      const chunkId = this.currentPlayingChunkId;
+      const currentIdx = this.currentIndex;
+      
+      // Update callbacks for the new chunk
+      this.player.updateCallbacks({
+        onFinish: () => {
+          if (this.currentPlayingChunkId !== chunkId || this.currentIndex !== currentIdx) {
+            return;
+          }
+          this.onChunkEnd?.(currentIdx);
+          this.currentIndex++;
+          this.playNextAfterAutoAdvance();
+        },
+        onError: (error) => {
+          if (this.currentPlayingChunkId !== chunkId || this.currentIndex !== currentIdx) {
+            return;
+          }
+          if (error.includes('NotAllowedError') || error.includes('user didn\'t interact')) {
+            this.isPlaying = false;
+            this.onError?.('NotAllowedError');
+            return;
+          }
+          this.onError?.(error);
+          this.currentIndex++;
+          this.playNext();
+        },
+      });
+      
+      this.onChunkStart?.(this.currentIndex, chunk.text);
+      this.updateMediaSessionState();
+      this.prefetchChunks();
+      this.preloadNextChunkIntoBuffer();
+      return;
+    }
+
+    // Not auto-advanced, play normally
+    await this.playNext();
   }
 
   private async playNext() {
@@ -307,7 +390,7 @@ export class TTSQueueManager {
       this.currentPlayingChunkId++;
       const chunkId = this.currentPlayingChunkId;
 
-      // Load audio into the persistent player (reuses same audio element)
+      // Load audio into the persistent player (may use preloaded buffer)
       await this.player.load(
         chunk.audioUri,
         {
@@ -320,9 +403,12 @@ export class TTSQueueManager {
 
             this.onChunkEnd?.(currentIdx);
 
-            // Move to next chunk (NO unload - reuse the same player)
+            // Move to next chunk
             this.currentIndex++;
-            this.playNext();
+            
+            // Note: PersistentAudioPlayer may have already auto-played the next chunk
+            // for gapless playback. playNext() will handle this gracefully.
+            this.playNextAfterAutoAdvance();
           },
           onError: (error) => {
             console.error(`❌ Error playing chunk ${currentIdx}:`, error);
@@ -347,8 +433,10 @@ export class TTSQueueManager {
         this.volume
       );
 
-      // Start playing
-      await this.player.play();
+      // Start playing (if not already auto-advanced from previous chunk)
+      if (!this.player.isCurrentlyPlaying()) {
+        await this.player.play();
+      }
 
       this.onChunkStart?.(this.currentIndex, chunk.text);
 
@@ -357,6 +445,9 @@ export class TTSQueueManager {
 
       // Pre-fetch next chunks while playing
       this.prefetchChunks();
+      
+      // IMPORTANT: Preload next chunk into inactive audio buffer for gapless playback
+      this.preloadNextChunkIntoBuffer();
 
     } catch (error: any) {
       console.error(`Failed to play chunk ${this.currentIndex}:`, error);

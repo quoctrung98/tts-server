@@ -1,5 +1,5 @@
-// Persistent Audio Player - Single audio element reused across chunks
-// Prevents Media Session from being lost between chunks
+// Persistent Audio Player - Dual buffer for gapless playback
+// Uses two audio elements to prevent Media Session from being lost between chunks
 import { Audio } from 'expo-av';
 import { Platform } from 'react-native';
 
@@ -15,24 +15,34 @@ export interface MediaSessionMetadata {
 }
 
 /**
- * Singleton audio player that maintains a persistent audio element.
- * This prevents Chrome from throttling the tab when switching between chunks.
+ * Dual-buffer audio player for gapless playback.
+ * Uses two audio elements: one playing, one preloading.
+ * This prevents Chrome from losing Media Session between chunks.
  */
 export class PersistentAudioPlayer {
   private static instance: PersistentAudioPlayer | null = null;
 
   private sound: Audio.Sound | null = null;
-  private htmlAudio: HTMLAudioElement | null = null;
+  
+  // Dual audio buffers for web
+  private audioA: HTMLAudioElement | null = null;
+  private audioB: HTMLAudioElement | null = null;
+  private activeAudio: 'A' | 'B' = 'A';
+  
   private callbacks: AudioPlayerCallbacks = {};
   private isWeb = Platform.OS === 'web';
   private volume: number = 0.8;
   private currentChunkId: number = 0;
 
-  private onLoadedData: (() => void) | null = null;
-  private onErrorHandler: ((e: Event | string) => void) | null = null;
-  private onEnded: (() => void) | null = null;
   private loadResolve: (() => void) | null = null;
   private loadReject: ((error: Error) => void) | null = null;
+  
+  // Preloaded next chunk
+  private preloadedUri: string | null = null;
+  private preloadedInBuffer: 'A' | 'B' | null = null;
+  
+  // Auto-advance callback (set by TTSQueueManager)
+  private onAutoAdvance: (() => void) | null = null;
 
   private static mediaSessionInitialized = false;
 
@@ -50,35 +60,97 @@ export class PersistentAudioPlayer {
   }
 
   private initWebAudio() {
-    // Create a single persistent audio element
-    this.htmlAudio = new window.Audio();
+    // Create two audio elements for gapless playback
+    this.audioA = this.createAudioElement('A');
+    this.audioB = this.createAudioElement('B');
+    this.activeAudio = 'A';
+  }
 
-    // Setup persistent event handlers
-    this.onLoadedData = () => {
-      this.loadResolve?.();
-      this.loadResolve = null;
-      this.loadReject = null;
-    };
+  private createAudioElement(id: string): HTMLAudioElement {
+    const audio = new window.Audio();
+    audio.preload = 'auto';
+    
+    audio.addEventListener('ended', () => {
+      // Only trigger if this is the active audio
+      if ((id === 'A' && this.activeAudio === 'A') || 
+          (id === 'B' && this.activeAudio === 'B')) {
+        
+        // GAPLESS PLAYBACK: If we have a preloaded chunk, play it IMMEDIATELY
+        // before calling the callback, to minimize gap
+        if (this.preloadedUri && this.preloadedInBuffer) {
+          this.activeAudio = this.preloadedInBuffer;
+          const nextAudio = this.getActiveAudioElement();
+          this.preloadedUri = null;
+          this.preloadedInBuffer = null;
+          
+          // Play immediately, don't wait
+          if (nextAudio) {
+            nextAudio.play().catch(e => console.error('Auto-advance play error:', e));
+          }
+        }
+        
+        // Then call the callback (which will update state, preload next, etc.)
+        this.callbacks.onFinish?.();
+      }
+    });
 
-    this.onErrorHandler = (e) => {
-      console.error('Web audio error:', e);
-      this.callbacks.onError?.('Failed to load audio');
-      this.loadReject?.(new Error('Failed to load audio'));
-      this.loadResolve = null;
-      this.loadReject = null;
-    };
+    audio.addEventListener('error', (e) => {
+      if ((id === 'A' && this.activeAudio === 'A') || 
+          (id === 'B' && this.activeAudio === 'B')) {
+        this.callbacks.onError?.('Failed to load audio');
+        this.loadReject?.(new Error('Failed to load audio'));
+        this.loadResolve = null;
+        this.loadReject = null;
+      }
+    });
 
-    this.onEnded = () => {
-      this.callbacks.onFinish?.();
-    };
+    audio.addEventListener('loadeddata', () => {
+      if ((id === 'A' && this.activeAudio === 'A') || 
+          (id === 'B' && this.activeAudio === 'B')) {
+        this.loadResolve?.();
+        this.loadResolve = null;
+        this.loadReject = null;
+      }
+    });
 
-    this.htmlAudio.addEventListener('loadeddata', this.onLoadedData);
-    this.htmlAudio.addEventListener('error', this.onErrorHandler);
-    this.htmlAudio.addEventListener('ended', this.onEnded);
+    return audio;
+  }
+
+  private getActiveAudioElement(): HTMLAudioElement | null {
+    return this.activeAudio === 'A' ? this.audioA : this.audioB;
+  }
+
+  private getInactiveAudioElement(): HTMLAudioElement | null {
+    return this.activeAudio === 'A' ? this.audioB : this.audioA;
   }
 
   /**
-   * Load a new audio source without destroying the audio element
+   * Preload the next chunk into inactive buffer (call while current chunk is playing)
+   */
+  async preloadNext(uri: string): Promise<void> {
+    if (!this.isWeb) return;
+    if (!this.audioA || !this.audioB) return;
+
+    const inactiveBuffer = this.activeAudio === 'A' ? 'B' : 'A';
+    const inactiveAudio = this.getInactiveAudioElement()!;
+    
+    inactiveAudio.volume = this.volume;
+    inactiveAudio.src = uri;
+    inactiveAudio.load();
+    
+    this.preloadedUri = uri;
+    this.preloadedInBuffer = inactiveBuffer;
+  }
+
+  /**
+   * Update callbacks for the current chunk (used after auto-advance)
+   */
+  updateCallbacks(callbacks: AudioPlayerCallbacks): void {
+    this.callbacks = callbacks;
+  }
+
+  /**
+   * Load a new audio source. If already preloaded, just switch buffers.
    */
   async load(uri: string, callbacks: AudioPlayerCallbacks, volume: number = 0.8): Promise<void> {
     this.callbacks = callbacks;
@@ -93,24 +165,34 @@ export class PersistentAudioPlayer {
   }
 
   private async loadWebAudio(uri: string): Promise<void> {
-    if (!this.htmlAudio) {
+    if (!this.audioA || !this.audioB) {
       this.initWebAudio();
     }
 
+    // Check if this URI was already preloaded into inactive buffer
+    if (this.preloadedUri === uri && this.preloadedInBuffer) {
+      this.activeAudio = this.preloadedInBuffer;
+      this.preloadedUri = null;
+      this.preloadedInBuffer = null;
+      return; // Already loaded, no need to wait
+    }
+
+    // Not preloaded, load normally
+    // Switch to the other buffer for the new chunk
+    this.activeAudio = this.activeAudio === 'A' ? 'B' : 'A';
+    const nextAudio = this.getActiveAudioElement()!;
+    
     return new Promise<void>((resolve, reject) => {
       this.loadResolve = resolve;
       this.loadReject = reject;
 
-      // Just change the src - don't recreate the element
-      this.htmlAudio!.pause();
-      this.htmlAudio!.volume = this.volume;
-      this.htmlAudio!.src = uri;
-      this.htmlAudio!.load();
+      nextAudio.volume = this.volume;
+      nextAudio.src = uri;
+      nextAudio.load();
     });
   }
 
   private async loadNativeAudio(uri: string): Promise<void> {
-    // For native, we still need to unload/reload due to Expo Audio limitations
     if (this.sound) {
       await this.sound.unloadAsync();
       this.sound = null;
@@ -138,8 +220,17 @@ export class PersistentAudioPlayer {
   async play(): Promise<void> {
     try {
       if (this.isWeb) {
-        if (this.htmlAudio) {
-          await this.htmlAudio.play();
+        const activeAudio = this.getActiveAudioElement();
+        const inactiveAudio = this.getInactiveAudioElement();
+        
+        if (activeAudio) {
+          // Stop the OTHER audio element (the previous chunk)
+          if (inactiveAudio && !inactiveAudio.paused) {
+            inactiveAudio.pause();
+            inactiveAudio.currentTime = 0;
+          }
+          
+          await activeAudio.play();
         }
       } else {
         if (this.sound) {
@@ -156,8 +247,9 @@ export class PersistentAudioPlayer {
   async pause(): Promise<void> {
     try {
       if (this.isWeb) {
-        if (this.htmlAudio) {
-          this.htmlAudio.pause();
+        const activeAudio = this.getActiveAudioElement();
+        if (activeAudio) {
+          activeAudio.pause();
         }
       } else {
         if (this.sound) {
@@ -172,9 +264,14 @@ export class PersistentAudioPlayer {
   async stop(): Promise<void> {
     try {
       if (this.isWeb) {
-        if (this.htmlAudio) {
-          this.htmlAudio.pause();
-          this.htmlAudio.currentTime = 0;
+        // Stop both audio elements
+        if (this.audioA) {
+          this.audioA.pause();
+          this.audioA.currentTime = 0;
+        }
+        if (this.audioB) {
+          this.audioB.pause();
+          this.audioB.currentTime = 0;
         }
       } else {
         if (this.sound) {
@@ -186,48 +283,39 @@ export class PersistentAudioPlayer {
     }
   }
 
-  /**
-   * Get current chunk ID (used to verify callbacks are still valid)
-   */
   getCurrentChunkId(): number {
     return this.currentChunkId;
   }
 
-  /**
-   * Set volume
-   */
   setVolume(volume: number): void {
     this.volume = volume;
-    if (this.isWeb && this.htmlAudio) {
-      this.htmlAudio.volume = volume;
+    if (this.isWeb) {
+      if (this.audioA) this.audioA.volume = volume;
+      if (this.audioB) this.audioB.volume = volume;
     }
   }
 
   isCurrentlyPlaying(): boolean {
     if (this.isWeb) {
-      return this.htmlAudio ? !this.htmlAudio.paused : false;
+      const activeAudio = this.getActiveAudioElement();
+      return activeAudio ? !activeAudio.paused : false;
     } else {
       return false;
     }
   }
 
-  /**
-   * Cleanup - only call when completely done with audio
-   */
   async destroy(): Promise<void> {
-    if (this.isWeb && this.htmlAudio) {
-      if (this.onLoadedData) {
-        this.htmlAudio.removeEventListener('loadeddata', this.onLoadedData);
+    if (this.isWeb) {
+      if (this.audioA) {
+        this.audioA.pause();
+        this.audioA.src = '';
+        this.audioA = null;
       }
-      if (this.onErrorHandler) {
-        this.htmlAudio.removeEventListener('error', this.onErrorHandler);
+      if (this.audioB) {
+        this.audioB.pause();
+        this.audioB.src = '';
+        this.audioB = null;
       }
-      if (this.onEnded) {
-        this.htmlAudio.removeEventListener('ended', this.onEnded);
-      }
-      this.htmlAudio.pause();
-      this.htmlAudio.src = '';
-      this.htmlAudio = null;
     } else if (this.sound) {
       await this.sound.unloadAsync();
       this.sound = null;
@@ -287,7 +375,7 @@ export class PersistentAudioPlayer {
       }
 
       PersistentAudioPlayer.mediaSessionInitialized = true;
-      console.log('Media Session initialized for background audio');
+      console.log('[PersistentAudioPlayer] Media Session initialized');
     } catch (error) {
       console.error('Failed to initialize Media Session:', error);
     }
