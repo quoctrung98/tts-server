@@ -40,7 +40,6 @@ export function useChapterLoader(): UseChapterLoaderReturn {
                 const { storage } = await import('../utils/storage');
                 const cached = await storage.load<ChapterContent | null>(cacheKey, null);
                 if (cached) {
-                    console.log('Loaded from cache:', url);
                     setChapterContent(cached);
                     setIsLoading(false);
                     return cached;

@@ -120,9 +120,6 @@ export function useHistory(): UseHistoryReturn {
         const currentItems = await storage.load<HistoryItem[]>('library_books', []);
         const existingItemIndex = currentItems.findIndex(item => item.id === id || (storyTitle && item.storyTitle === storyTitle));
 
-        console.log('[History] updateProgress called:', { url: url.substring(0, 50), title, storyTitle, id });
-        console.log('[History] existingItemIndex:', existingItemIndex, 'currentItems count:', currentItems.length);
-
         let newItems = [...currentItems];
 
         if (existingItemIndex >= 0) {
@@ -146,8 +143,6 @@ export function useHistory(): UseHistoryReturn {
             recentChapters = recentChapters
                 .sort((a, b) => b.timestamp - a.timestamp)
                 .slice(0, MAX_RECENT_CHAPTERS);
-
-            console.log('[History] recentChapters after update:', recentChapters.length, recentChapters.map(c => c.title.substring(0, 30)));
 
             // Update existing entry
             newItems[existingItemIndex] = {
