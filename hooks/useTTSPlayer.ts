@@ -1,7 +1,8 @@
 // useTTSPlayer - TTS playback control hook
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { TTSQueueManager } from '../services/TTSQueueManager';
+import { BackgroundAudioKeepAlive } from '../services/BackgroundAudioKeepAlive';
 import { splitIntoSentences, groupSentencesIntoChunks } from '../utils/textUtils';
 import { TTS_SERVER_URL } from '../config';
 import { TTSSettings } from '../components/SettingsModal';
@@ -73,6 +74,12 @@ export function useTTSPlayer(settings: TTSSettings): UseTTSPlayerReturn {
         onCompleteRef.current = onComplete;
 
         try {
+            // Start background audio keep-alive (helps prevent Chrome from suspending audio)
+            if (Platform.OS === 'web') {
+                const keepAlive = BackgroundAudioKeepAlive.getInstance();
+                await keepAlive.start();
+            }
+
             // Stop current playback if any
             if (ttsManagerRef.current) {
                 await ttsManagerRef.current.stop();
@@ -157,6 +164,11 @@ export function useTTSPlayer(settings: TTSSettings): UseTTSPlayerReturn {
             await ttsManagerRef.current.pause();
             setIsPlaying(false);
         } else {
+            // Ensure background keep-alive is active when resuming
+            if (Platform.OS === 'web') {
+                const keepAlive = BackgroundAudioKeepAlive.getInstance();
+                await keepAlive.ensureActive();
+            }
             await ttsManagerRef.current.resume();
             setIsPlaying(true);
         }

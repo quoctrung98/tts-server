@@ -236,7 +236,6 @@ export class TTSQueueManager {
     }
 
     if (nextChunk.audioUri && nextChunk.isLoaded) {
-      console.log(`[TTSQueueManager] Preloading chunk ${nextIndex} into inactive buffer`);
       await this.player.preloadNext(nextChunk.audioUri);
     }
   }
@@ -302,7 +301,6 @@ export class TTSQueueManager {
     
     // Audio is already playing (auto-advanced), just update state and callbacks
     if (this.player.isCurrentlyPlaying()) {
-      console.log(`[TTSQueueManager] Chunk ${this.currentIndex} auto-advanced, updating state`);
       
       this.currentPlayingChunkId++;
       const chunkId = this.currentPlayingChunkId;

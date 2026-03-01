@@ -178,7 +178,6 @@ export default function App() {
 
       const chapter = await provider.fetchChapter(url);
       setChapterContent(chapter);
-
       // Small delay to ensure state is updated
       await new Promise(resolve => setTimeout(resolve, 500));
 

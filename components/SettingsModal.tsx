@@ -369,6 +369,35 @@ export default function SettingsModal({ visible, onClose, settings, onSave, colo
                 </View>
               </View>
             </View>
+
+            {/* Background Audio Instructions (Android Chrome) */}
+            {Platform.OS === 'web' && (
+              <View style={[styles.section, styles.instructionSection, { backgroundColor: colors.primary + '10', borderColor: colors.primary }]}>
+                <Text style={[styles.sectionTitle, { color: colors.primary }]}>
+                  📱 Phát audio khi tắt màn hình (Android)
+                </Text>
+                <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
+                  Để audio tiếp tục phát khi tắt màn hình điện thoại, bạn cần tắt chế độ tiết kiệm pin cho Chrome:
+                </Text>
+                <View style={styles.instructionSteps}>
+                  <Text style={[styles.instructionStep, { color: colors.text }]}>
+                    1. Mở <Text style={{ fontWeight: 'bold' }}>Cài đặt</Text> điện thoại
+                  </Text>
+                  <Text style={[styles.instructionStep, { color: colors.text }]}>
+                    2. Vào <Text style={{ fontWeight: 'bold' }}>Ứng dụng</Text> → <Text style={{ fontWeight: 'bold' }}>Chrome</Text>
+                  </Text>
+                  <Text style={[styles.instructionStep, { color: colors.text }]}>
+                    3. Chọn <Text style={{ fontWeight: 'bold' }}>Pin</Text> hoặc <Text style={{ fontWeight: 'bold' }}>Sử dụng pin</Text>
+                  </Text>
+                  <Text style={[styles.instructionStep, { color: colors.text }]}>
+                    4. Chọn <Text style={{ fontWeight: 'bold' }}>Không hạn chế</Text> (Unrestricted)
+                  </Text>
+                </View>
+                <Text style={[styles.noteText, { color: colors.warning || '#f39c12', marginTop: 8 }]}>
+                  ⚠️ Lưu ý: Đây là giới hạn của trình duyệt web. Để trải nghiệm tốt nhất, hãy cài đặt app native từ APK.
+                </Text>
+              </View>
+            )}
           </ScrollView>
 
           {/* Footer */}
@@ -573,6 +602,20 @@ const styles = StyleSheet.create({
   loadCloudButtonText: {
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  instructionSection: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  instructionSteps: {
+    marginTop: 8,
+    marginLeft: 8,
+  },
+  instructionStep: {
+    fontSize: 14,
+    lineHeight: 24,
+    marginBottom: 4,
   },
 });
 
