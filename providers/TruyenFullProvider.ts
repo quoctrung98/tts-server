@@ -2,7 +2,7 @@ import { IChapterProvider, ChapterContent } from './IChapterProvider';
 import { restoreCensoredWords } from '../utils/textUtils';
 
 export class TruyenFullProvider implements IChapterProvider {
-  private readonly baseUrlPattern = /truyenfull\.(vn|vision)/i;
+  private readonly baseUrlPattern = /truyenfull/i;
 
   getName(): string {
     return 'Truyện Full';
