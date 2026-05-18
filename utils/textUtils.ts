@@ -97,7 +97,8 @@ export function restoreCensoredWords(text: string): string {
     'υ.': 'ụ',
     '*и': 'ồn',
     "Ygritte": "I-gờ-ris",
-    "Lv": "Le vờ"
+    "Lv": "Le vờ",
+    "Jinwoo": "Jin-wu",
   };
 
   let restoredText = text;
