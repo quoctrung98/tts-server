@@ -28,6 +28,7 @@ import { ChapterContentDisplay } from './components/ChapterContentDisplay';
 import { TTSControlsSection } from './components/TTSControlsSection';
 import SettingsModal from './components/SettingsModal';
 import { HistoryModal } from './components/HistoryModal';
+import { NavigationBar } from './components/NavigationBar';
 
 // Config - no longer needed here as ttsPlayer handles TTS setup
 
@@ -36,6 +37,7 @@ export default function App() {
   const [chapterUrl, setChapterUrl] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [isReadingMode, setIsReadingMode] = useState(false);
 
   // Custom Hooks
   const { isDarkMode, theme, cycleTheme, colors: baseColors } = useDarkMode();
@@ -212,6 +214,18 @@ export default function App() {
     }
   }, [settings, saveProgress, setChapterContent, ttsPlayer]);
 
+  // Reading-mode chapter navigation (no TTS auto-play)
+  const handleNavigateChapter = useCallback(async (url: string) => {
+    if (!url) return;
+    ttsPlayer.stop();
+    setChapterUrl(url);
+    const chapter = await fetchChapter(url);
+    if (chapter) {
+      await saveProgress(url, 0, chapter.title);
+      await history.updateProgress(url, chapter.title, 0, 0, chapter.novelTitle);
+    }
+  }, [fetchChapter, saveProgress, history, ttsPlayer]);
+
   // Handle manual cloud load
   const handleLoadCloudProgress = useCallback(async (username?: string) => {
     try {
@@ -269,17 +283,33 @@ export default function App() {
             onToggleTheme={cycleTheme}
             onOpenSettings={() => setShowSettings(true)}
             onOpenHistory={() => setShowHistory(true)}
+            onToggleReadingMode={() => setIsReadingMode(m => !m)}
+            isReadingMode={isReadingMode}
             colors={colors}
           />
 
-          {/* URL Input Section */}
-          <ChapterUrlInput
-            chapterUrl={chapterUrl}
-            onChangeUrl={setChapterUrl}
-            onFetch={() => handleFetchChapter()}
-            isLoading={isLoadingChapter}
-            colors={colors}
-          />
+          {/* URL Input Section - hidden in reading mode */}
+          {!isReadingMode && (
+            <ChapterUrlInput
+              chapterUrl={chapterUrl}
+              onChangeUrl={setChapterUrl}
+              onFetch={() => handleFetchChapter()}
+              isLoading={isLoadingChapter}
+              colors={colors}
+            />
+          )}
+
+          {/* Navigation Bar */}
+          {chapterContent && (
+            <NavigationBar
+              prevChapterUrl={chapterContent.prevChapterUrl}
+              nextChapterUrl={chapterContent.nextChapterUrl}
+              onPrev={() => chapterContent.prevChapterUrl && handleNavigateChapter(chapterContent.prevChapterUrl)}
+              onNext={() => chapterContent.nextChapterUrl && handleNavigateChapter(chapterContent.nextChapterUrl)}
+              isLoading={isLoadingChapter}
+              colors={colors}
+            />
+          )}
 
           {/* Chapter Content Display */}
           {chapterContent && (
@@ -292,27 +322,29 @@ export default function App() {
             />
           )}
 
-          {/* TTS Controls Section */}
-          <TTSControlsSection
-            settings={settings}
-            isPlaying={ttsPlayer.isPlaying}
-            isLoading={ttsPlayer.isLoading}
-            textChunks={ttsPlayer.textChunks}
-            currentChunkIndex={ttsPlayer.currentChunkIndex}
-            readingProgress={ttsPlayer.readingProgress}
-            seekValue={ttsPlayer.seekValue}
-            onPlay={handlePlay}
-            onTogglePlayPause={ttsPlayer.togglePlayPause}
-            onStop={ttsPlayer.stop}
-            onSeekStart={ttsPlayer.handleSeekStart}
-            onSeekChange={ttsPlayer.handleSeekChange}
-            onSeekEnd={ttsPlayer.handleSeekEnd}
-            isWaitingForInteraction={ttsPlayer.isWaitingForInteraction}
-            sleepTimerMinutes={ttsPlayer.sleepTimerMinutes}
-            timeRemaining={ttsPlayer.timeRemaining}
-            onSetSleepTimer={ttsPlayer.setSleepTimer}
-            colors={colors}
-          />
+          {/* TTS Controls Section - hidden in reading mode */}
+          {!isReadingMode && (
+            <TTSControlsSection
+              settings={settings}
+              isPlaying={ttsPlayer.isPlaying}
+              isLoading={ttsPlayer.isLoading}
+              textChunks={ttsPlayer.textChunks}
+              currentChunkIndex={ttsPlayer.currentChunkIndex}
+              readingProgress={ttsPlayer.readingProgress}
+              seekValue={ttsPlayer.seekValue}
+              onPlay={handlePlay}
+              onTogglePlayPause={ttsPlayer.togglePlayPause}
+              onStop={ttsPlayer.stop}
+              onSeekStart={ttsPlayer.handleSeekStart}
+              onSeekChange={ttsPlayer.handleSeekChange}
+              onSeekEnd={ttsPlayer.handleSeekEnd}
+              isWaitingForInteraction={ttsPlayer.isWaitingForInteraction}
+              sleepTimerMinutes={ttsPlayer.sleepTimerMinutes}
+              timeRemaining={ttsPlayer.timeRemaining}
+              onSetSleepTimer={ttsPlayer.setSleepTimer}
+              colors={colors}
+            />
+          )}
         </ScrollView>
 
         {/* Settings Modal */}

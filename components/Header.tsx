@@ -8,10 +8,12 @@ interface HeaderProps {
     onToggleTheme: () => void;
     onOpenSettings: () => void;
     onOpenHistory: () => void;
+    onToggleReadingMode: () => void;
+    isReadingMode: boolean;
     colors: ThemeColors;
 }
 
-export function Header({ theme, onToggleTheme, onOpenSettings, onOpenHistory, colors }: HeaderProps) {
+export function Header({ theme, onToggleTheme, onOpenSettings, onOpenHistory, onToggleReadingMode, isReadingMode, colors }: HeaderProps) {
     const getThemeIcon = () => {
         switch (theme) {
             case 'light': return '🍂'; // Icon for switching TO Sepia? Or current state?
@@ -46,6 +48,12 @@ export function Header({ theme, onToggleTheme, onOpenSettings, onOpenHistory, co
                 {/* <Text style={[styles.title, { color: colors.text }]}>📚 Ứng Dụng Đọc Truyện</Text> */}
             </View>
             <View style={styles.headerButtons}>
+                <TouchableOpacity
+                    style={[styles.headerButton, { backgroundColor: isReadingMode ? colors.highlightBackground : colors.cardBackground }]}
+                    onPress={onToggleReadingMode}
+                >
+                    <Text style={styles.headerIcon}>{isReadingMode ? '🎧' : '📖'}</Text>
+                </TouchableOpacity>
                 <TouchableOpacity
                     style={[styles.headerButton, { backgroundColor: colors.cardBackground }]}
                     onPress={onOpenHistory}

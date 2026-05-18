@@ -105,12 +105,8 @@ export function ChapterContentDisplay({
                         </View>
                     ))
                 ) : (
-                    <Text style={styles.contentText}>
-                        {content.content.substring(0, 500)}...
-                        {'\n\n'}
-                        <Text style={[styles.contentHint, { color: colors.textSecondary }]}>
-                            💡 Nhấn "▶️ Đọc" để xem toàn bộ nội dung với highlight theo thời gian thực
-                        </Text>
+                    <Text style={[styles.contentText, { color: colors.text }]}>
+                        {content.content}
                     </Text>
                 )}
             </ScrollView>
